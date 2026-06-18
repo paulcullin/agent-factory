@@ -1,0 +1,5 @@
+# Root of the template repo. The node-ts starter has its own .gitignore.
+.DS_Store
+*.log
+node_modules/
+.claude/settings.local.json

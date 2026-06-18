@@ -1,0 +1,35 @@
+name: CI
+
+# The single deterministic gate, run on every push and PR. This must mirror
+# the local `<runner> check` so "green in CI" == "green locally".
+#
+# GOTCHA: pushing this workflow file needs the `workflow` token scope. If a
+# push is rejected with a workflow-scope error, run:
+#   gh auth refresh -s workflow
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Point this at the stamped project root. For a project created from
+        # templates/node-ts this is the repo root; adjust if your layout differs.
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Check (typecheck + lint + test + build)
+        run: npm run check
