@@ -38,6 +38,13 @@ under in this repository. It is loaded automatically. Read it before acting.
 - Scope comes from issues; the checkbox AC is the source of truth.
 - Deterministic before AI: `check` gates correctness; AI verify gates
   *coverage* of the AC. Never let AI judgment replace the deterministic gate.
+- **GitHub access: prefer the GitHub MCP, fall back to `gh`.** When the GitHub
+  MCP is available, use it for richer/structured operations — above all the
+  **line-level inline review comments** in `/verify`, which `gh` can't place
+  well. When it isn't, every operation must still work via the `gh` CLI, which
+  is the required baseline. `gh` is also the *only* option in non-agent contexts
+  (the `scripts/` helpers and CI), so skills keep their `gh` form as the
+  portable default. Never make a skill hard-depend on an MCP server.
 
 ## The pipeline (skills)
 

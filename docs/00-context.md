@@ -30,3 +30,13 @@ narrative memory; every non-trivial change adds a line here._
   `npm run check`.
 - Dogfooded `/spec`: filed Epic #1 + spec issues #2–#5 (python stack, go stack,
   Preview MCP smoke test, GitHub MCP setup) — proves the machinery on itself.
+
+## 2026-06-18 — GitHub MCP-vs-`gh` convention made explicit
+
+- Made the "prefer GitHub MCP, fall back to `gh`" rule a documented convention
+  rather than a one-off in `/verify`. Added it to `CLAUDE.md` → Conventions and
+  the `docs/WORKFLOW.md` tools table.
+- Rationale: `gh` stays the required, portable baseline because it's the only
+  option in `scripts/` and CI and must not become a hard MCP dependency; MCP is
+  preferred where it's richer (esp. line-level inline review comments). Skills
+  keep their `gh` form unchanged.

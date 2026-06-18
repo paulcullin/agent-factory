@@ -60,10 +60,17 @@ single verification gate.
 
 ## Recommended tools / MCPs
 
+**Rule of thumb: prefer the GitHub MCP, fall back to `gh`.** Use the MCP for
+richer/structured GitHub operations when it's wired up; otherwise everything
+still works through the `gh` CLI, which is the required baseline. `gh` is also
+the only option in the `scripts/` helpers and CI (no MCP there), so the skills
+keep their `gh` form as the portable default and never hard-depend on an MCP
+server. See `CLAUDE.md` → Conventions.
+
 | Tool | Why it matters | Priority |
 |---|---|---|
-| **GitHub MCP** (official) | Line-level PR review comments for `/verify`; richer than `gh` | High |
-| `gh` CLI | Issue/PR/label CRUD; the baseline everything falls back to | Required |
+| **GitHub MCP** (official) | Line-level PR review comments for `/verify`; richer structured GitHub ops; preferred when available | High |
+| `gh` CLI | Issue/PR/label CRUD; the required baseline everything falls back to, and the only option in scripts + CI | Required |
 | Preview MCP | Dynamic smoke tests in `/verify` | Medium |
 | Playwright / WebKit | Device-realistic E2E once a project has a UI | Per-project |
 | `fewer-permission-prompts` skill | Tighten the AFK allowlist from real runs | Low |
