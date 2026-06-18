@@ -40,3 +40,14 @@ narrative memory; every non-trivial change adds a line here._
   option in `scripts/` and CI and must not become a hard MCP dependency; MCP is
   preferred where it's richer (esp. line-level inline review comments). Skills
   keep their `gh` form unchanged.
+
+## 2026-06-18 — adoption path for existing projects
+
+- Added `scripts/adopt.sh`: non-destructively layers the shared machinery
+  (skills, CLAUDE.md, issue/PR templates, workflow docs) into an existing repo.
+  Never overwrites; writes `*.agent-factory` reference copies for files that
+  need a manual merge (CLAUDE.md, settings.json). Doesn't touch git, CI, or
+  remotes. `--labels` opt-in for setup-labels.sh. Verified end-to-end against a
+  simulated existing repo: existing files preserved, idempotent on re-run.
+- Added `docs/ADOPTING.md` (full guide, incl. partial-adoption subsets) and a
+  README "Option C — adopt into an existing project".

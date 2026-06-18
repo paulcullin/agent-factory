@@ -36,7 +36,7 @@ stack example (`node-ts`). The pattern was proven on
 **Option A — GitHub UI:** click **“Use this template”**, then in your new repo
 run `scripts/setup-labels.sh` and start with `/spec <your idea>`.
 
-**Option B — script:**
+**Option B — script (new project):**
 
 ```bash
 scripts/new-project.sh my-app --stack node-ts        # public + GitHub repo
@@ -51,6 +51,19 @@ cd my-app
 npm install
 npm run check        # the single gate — typecheck + lint + test + build
 ```
+
+**Option C — adopt into an existing project:** drop the workflow into a repo
+you already have, non-destructively (never overwrites your code, CI, or
+`CLAUDE.md`):
+
+```bash
+# from the root of your existing project
+/path/to/agent-factory/scripts/adopt.sh
+```
+
+Then merge the `CLAUDE.agent-factory.md` reference into your `CLAUDE.md`, point
+the `check` gate at your real command, and restart Claude Code. Full guide:
+**[docs/ADOPTING.md](docs/ADOPTING.md)**.
 
 ## The workflow
 
