@@ -51,3 +51,17 @@ narrative memory; every non-trivial change adds a line here._
   simulated existing repo: existing files preserved, idempotent on re-run.
 - Added `docs/ADOPTING.md` (full guide, incl. partial-adoption subsets) and a
   README "Option C — adopt into an existing project".
+
+## 2026-07-03 — Jira config contract (issue #7, epic #6)
+
+- Added `issue_tracker: github|jira` (plus `jira_site`/`jira_project_key`) to
+  `CLAUDE.md` — the shared switch the five skills will branch on to support
+  Jira as an alternative backlog to GitHub Issues.
+- Documented an explicit exception in `CLAUDE.md` → Conventions: in `jira`
+  mode the Atlassian MCP is a hard dependency with no CLI fallback, unlike the
+  GitHub MCP-vs-`gh` rule — there's no Jira CLI as ubiquitous as `gh` to fall
+  back to.
+- Added the Atlassian MCP row to the `docs/WORKFLOW.md` tools table and a
+  Jira-mode setup subsection to `docs/ADOPTING.md`.
+- This is the shared contract for the five skill-specific Jira issues
+  (#8–#12) under epic #6; it doesn't itself change any skill's procedure.

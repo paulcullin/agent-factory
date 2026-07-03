@@ -85,7 +85,25 @@ scripts/setup-labels.sh            # uses the current repo's remote
 scripts/setup-labels.sh owner/repo # or target an explicit repo
 ```
 
-### 4. Restart Claude Code
+### 4. (Optional) Switch to Jira as the issue tracker
+
+By default the skills read and write GitHub Issues. If your backlog lives in
+Jira instead, one-time setup is:
+
+1. In your merged `CLAUDE.md`, set `issue_tracker: jira` and fill in
+   `jira_site` (your Atlassian Cloud site URL) and `jira_project_key` (e.g.
+   `PROJ`) — see `CLAUDE.md` → Issue tracker in the reference copy.
+2. Confirm the **Atlassian MCP server** is connected in your Claude Code
+   session. Unlike GitHub, there's no `gh`-equivalent CLI fallback for Jira,
+   so this is a hard requirement in `jira` mode (documented as an explicit
+   exception in `CLAUDE.md` → Conventions) — no `scripts/setup-labels.sh`-style
+   script is needed, since Jira's Epic/Story issue types are native and don't
+   need to be created.
+
+That's it — no other file changes; the skills themselves branch on
+`issue_tracker` at run time.
+
+### 5. Restart Claude Code
 
 Claude Code enumerates skills at startup, so after adoption **relaunch `claude`
 in the project** before the five skills appear in `/skills` and become

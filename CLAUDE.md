@@ -31,6 +31,18 @@ under in this repository. It is loaded automatically. Read it before acting.
 > Replace `<runner>` with the concrete command when stamping a project
 > (e.g. `npm run check`, `pnpm check`, `make check`, `cargo check && cargo test`).
 
+## Issue tracker
+
+- `issue_tracker` — which backlog the five skills read from and write to.
+  Allowed values: `github` (default) or `jira`.
+
+> Set `issue_tracker` when stamping or adopting a project. Leave it as
+> `github` unless the project's backlog lives in Jira.
+
+- When `issue_tracker: jira`, also set:
+  - `jira_site` — the Atlassian Cloud site URL (e.g. `https://yourteam.atlassian.net`).
+  - `jira_project_key` — the Jira project key issues are filed under (e.g. `PROJ`).
+
 ## Agentic mode
 
 - The acceptance criteria in a worked issue **ARE** the spec. Implement exactly
@@ -60,6 +72,14 @@ under in this repository. It is loaded automatically. Read it before acting.
   is the required baseline. `gh` is also the *only* option in non-agent contexts
   (the `scripts/` helpers and CI), so skills keep their `gh` form as the
   portable default. Never make a skill hard-depend on an MCP server.
+- **Exception — Jira mode hard-depends on the Atlassian MCP.** When
+  `issue_tracker: jira`, the Atlassian MCP server is a **required** dependency
+  for the skills' Jira-backed code paths, with **no CLI fallback**. This is a
+  deliberate exception to the "never hard-depend on an MCP server" rule above:
+  unlike GitHub, Jira has no CLI as ubiquitous or as reliable as `gh` to fall
+  back to, so there is no portable baseline to keep working without the MCP.
+  This exception is scoped to `jira` mode only — `github` mode keeps the
+  `gh`-fallback guarantee unchanged.
 
 ## The pipeline (skills)
 
