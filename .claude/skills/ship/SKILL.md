@@ -22,12 +22,25 @@ Land an approved, CI-green PR and clean up after it.
    `git worktree remove ../<repo>-<#>` (use `--force` only if it's clean and
    you're sure).
 
-4. **Confirm issue closure.** The `Closes #<#>` in the PR should auto-close the
-   linked issue. Verify with `gh issue view <#> --json state`. If it's still
-   open, close it with a delivery comment referencing the merge commit SHA.
+4. **Confirm issue closure.** Forks on `issue_tracker` (`CLAUDE.md` → Issue
+   tracker):
+   - **`github` mode (default).** The `Closes #<#>` in the PR should auto-close
+     the linked issue. Verify with `gh issue view <#> --json state`. If it's
+     still open, close it with a delivery comment referencing the merge
+     commit SHA.
+   - **`jira` mode.** A Jira key in the PR body doesn't trigger GitHub
+     auto-close, so don't expect or wait for one. Instead:
+     - Resolve the Jira key from the PR body's `Jira: <JIRA-KEY>` line.
+     - Transition that Jira issue to a "Done"-style status via the Atlassian
+       MCP (discovered via `ToolSearch`; see `CLAUDE.md` → Conventions —
+       Jira mode hard-depends on this MCP, no CLI fallback).
+     - Add a comment on the Jira issue with the merge commit SHA and the PR
+       URL, so the Jira issue carries the same delivery trail a GitHub
+       auto-close + comment would.
 
 5. **Append to the log.** Add a line to `docs/00-context.md` (append-only):
-   what shipped, the PR/merge SHA, and the closed issue.
+   what shipped, the PR/merge SHA, and the closed issue (the GitHub issue
+   number in `github` mode, the Jira key in `jira` mode).
 
 ## Rules
 
@@ -36,3 +49,6 @@ Land an approved, CI-green PR and clean up after it.
   green in isolation can conflict in combination.
 - Never force-merge past a red gate or a missing approval.
 - Squash-merge keeps `main` history one-commit-per-issue.
+- The rules above are tracker-agnostic: guard, merge, serialization, and the
+  no-force-merge rule are identical in `github` and `jira` mode. Only issue
+  closure (step 4) forks.
