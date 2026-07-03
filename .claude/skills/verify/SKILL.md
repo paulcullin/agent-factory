@@ -33,12 +33,21 @@ proves correctness; this step proves *coverage* of the AC.
    observed.
 
 6. **Post the review.**
-   - All AC pass **and** CI green ⇒ `gh pr review <#> --approve` with a summary
-     that lists each AC and its evidence.
-   - Otherwise ⇒ `gh pr review <#> --request-changes` with **inline comments at
-     the gap locations**. Inline line-level comments need the **GitHub MCP**;
-     if it's absent, fall back to a single summary review comment via `gh`
-     listing each gap and where it should be addressed.
+   - **Check identity first.** Compare the PR author (`gh pr view <#> --json
+     author`) to the authenticated `gh` user (`gh api user`). If they're the
+     **same identity**, `gh pr review --approve` will always fail — GitHub
+     blocks self-approval by identity, not by review content. Skip the
+     attempt entirely: post the verdict as a plain `gh pr comment` using the
+     same body (see Output format), and say explicitly that a human must
+     manually approve before `/ship`'s guard will pass. Do not spend a turn
+     discovering this failure — check identity up front.
+   - Otherwise, when a **different** identity is verifying: all AC pass **and**
+     CI green ⇒ `gh pr review <#> --approve` with a summary that lists each AC
+     and its evidence.
+   - Otherwise (AC gaps or CI red) ⇒ `gh pr review <#> --request-changes` with
+     **inline comments at the gap locations**. Inline line-level comments need
+     the **GitHub MCP**; if it's absent, fall back to a single summary review
+     comment via `gh` listing each gap and where it should be addressed.
 
 ## Output format (the review body)
 

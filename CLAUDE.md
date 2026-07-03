@@ -111,4 +111,11 @@ See `docs/WORKFLOW.md` for the end-to-end human guide.
 - Pushing a `.github/workflows/*.yml` file requires the `workflow` token scope:
   run `gh auth refresh -s workflow` if a push is rejected with a workflow-scope
   error. (Hit during FieldLens bootstrap.)
+- **PR self-approval is blocked.** If `/verify` runs under the same `gh`
+  identity that authored the PR (the default single-account setup), `gh pr
+  review --approve` always fails with `Can not approve your own pull
+  request` — GitHub blocks this by identity, not by review content. `/verify`
+  skips attempting `--approve` in that case and posts the AC grade via `gh pr
+  comment` instead; a human must then manually approve before `/ship`'s guard
+  (which requires an approving review) will pass. (Hit verifying PR #13.)
 - `TODO`

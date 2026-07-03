@@ -65,3 +65,14 @@ narrative memory; every non-trivial change adds a line here._
   Jira-mode setup subsection to `docs/ADOPTING.md`.
 - This is the shared contract for the five skill-specific Jira issues
   (#8–#12) under epic #6; it doesn't itself change any skill's procedure.
+- **Shipped:** PR #13 merged to `main` at `599f53d`, closing issue #7.
+  Merged manually (not via `/ship`'s `--squash`) since `gh` couldn't post an
+  approving review under `/verify` — same identity authored and verified the
+  PR, and GitHub blocks self-approval. Grading was posted as a PR comment
+  instead; a human approved the merge itself. That gap prompted two follow-up
+  edits landed straight to `main` (not through a PR): `CLAUDE.md` → Gotchas
+  now documents the self-approval block, and `/verify`'s procedure now checks
+  PR-author-vs-authenticated-identity up front and skips straight to the
+  comment fallback instead of attempting and failing `--approve`.
+  Worktree `.claude/worktrees/issue-7` and branch `worktree-issue-7` (local +
+  remote) removed.
