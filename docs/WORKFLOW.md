@@ -71,6 +71,7 @@ server. See `CLAUDE.md` → Conventions.
 |---|---|---|
 | **GitHub MCP** (official) | Line-level PR review comments for `/verify`; richer structured GitHub ops; preferred when available | High |
 | `gh` CLI | Issue/PR/label CRUD; the required baseline everything falls back to, and the only option in scripts + CI | Required |
+| **Atlassian MCP** | Epic/Story CRUD, AC retrieval, comments, and status transitions in Jira; **required, no CLI fallback**, when `issue_tracker: jira` | Required (Jira mode only) |
 | Preview MCP | Dynamic smoke tests in `/verify` | Medium |
 | Playwright / WebKit | Device-realistic E2E once a project has a UI | Per-project |
 | `fewer-permission-prompts` skill | Tighten the AFK allowlist from real runs | Low |
