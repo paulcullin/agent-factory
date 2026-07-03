@@ -11,10 +11,17 @@ collide.
 
 ## Procedure
 
-1. **Select work.** `gh issue list --label spec --state open` ordered by
-   milestone / priority. Take up to **N** (default **3**; practical ceiling
-   **~5** — beyond that, memory pressure and merge-conflict risk on shared
-   files outweigh the parallelism).
+1. **Select work.** Forks on `issue_tracker` (see `CLAUDE.md`):
+   - `github` (default): `gh issue list --label spec --state open` ordered by
+     milestone / priority.
+   - `jira`: query `jira_project_key` via the Atlassian MCP (discovered via
+     `ToolSearch`) for up to N open Story-type issues — e.g. an equivalent of
+     `project = <jira_project_key> AND issuetype = Story AND status = "To
+     Do"` — ordered by priority.
+
+   Either way, take up to **N** (default **3**; practical ceiling **~5** —
+   beyond that, memory pressure and merge-conflict risk on shared files
+   outweigh the parallelism).
 
 2. **Detect overlap before parallelizing.** Read each candidate's `Touches:`
    line (and skim its AC). Group issues that touch the same core
@@ -38,9 +45,11 @@ collide.
    branches that were green in isolation can't land a broken combination.
 
 6. **Summarize.** Report three buckets:
-   - **Shipped** — issue #, PR #, merge SHA.
-   - **Blocked** — issue #, the reason (failing AC, ambiguous scope, CI).
-   - **Still running** — issue #, current stage.
+   - **Shipped** — issue # (or Jira key when `issue_tracker: jira`), PR #,
+     merge SHA.
+   - **Blocked** — issue # (or Jira key), the reason (failing AC, ambiguous
+     scope, CI).
+   - **Still running** — issue # (or Jira key), current stage.
 
 ## Conflict rules (do not violate)
 
