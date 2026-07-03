@@ -119,3 +119,16 @@ narrative memory; every non-trivial change adds a line here._
 - The ambiguous-AC stop rule, the 5-iteration `check` cap, and the
   never-force-push/never-merge-here invariants are unchanged and
   tracker-agnostic across both modes.
+
+## 2026-07-03 — `/spec` gains a Jira backend (issue #8, epic #6)
+
+- `.claude/skills/spec/SKILL.md` now forks on `issue_tracker`: `github` mode
+  is unchanged (`gh issue create`); `jira` mode creates the Epic and each
+  spec Story via the Atlassian MCP (discovered via `ToolSearch`), scoped to
+  `jira_project_key`, with `Epic: <JIRA-KEY>` back-links and the same
+  `Touches:` line + `### Acceptance criteria` bar as GitHub mode.
+- Returns Jira issue keys (e.g. `PROJ-101`) in place of GitHub numbers when in
+  `jira` mode, for `/sprint` or the user to hand off.
+- **This closes out epic #6** — all five skills (`spec`, `implement`, `verify`,
+  `ship`, `sprint`) now carry a `jira`-mode fork alongside their `github`
+  behavior, gated by the shared `issue_tracker` config from issue #7.
