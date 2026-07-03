@@ -96,3 +96,14 @@ narrative memory; every non-trivial change adds a line here._
   Shipped/Blocked/Still-running buckets when `issue_tracker: jira`.
 - Steps 2–5 left untouched per AC — they already compose `/spec`, `/implement`,
   `/verify`, `/ship`, each carrying its own tracker fork.
+
+## 2026-07-03 — Jira backend for /verify (issue #10, epic #6)
+
+- Added a `jira`-mode fork to `.claude/skills/verify/SKILL.md`: step 1 resolves
+  AC from the Jira key on the PR body's `Jira: <JIRA-KEY>` line (via the
+  Atlassian MCP) instead of `gh pr view --json closingIssuesReferences`; AC
+  grading itself is unchanged.
+- Step 6 now additionally posts the `## AC grade` / `## Verdict` summary as a
+  Jira comment and, on request-changes, transitions the Jira issue back to an
+  "in progress"-style status. The existing GitHub-side review (incl. the
+  self-approval-identity check) is untouched.
