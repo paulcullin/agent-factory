@@ -86,6 +86,28 @@ narrative memory; every non-trivial change adds a line here._
   comments the merge SHA + PR URL. Guard, merge, and serialization rules are
   unchanged and tracker-agnostic.
 
+## 2026-07-03 — Jira backend for /sprint (issue #12, epic #6)
+
+- `/sprint` step 1 ("Select work") now forks on `issue_tracker`: `github`
+  unchanged (`gh issue list --label spec --state open`); `jira` queries
+  `jira_project_key` for open Story-type issues via the Atlassian MCP,
+  ordered by priority. N=3 default / ~5 ceiling unchanged either way.
+- Step 6 ("Summarize") now reports Jira keys instead of issue numbers in the
+  Shipped/Blocked/Still-running buckets when `issue_tracker: jira`.
+- Steps 2–5 left untouched per AC — they already compose `/spec`, `/implement`,
+  `/verify`, `/ship`, each carrying its own tracker fork.
+
+## 2026-07-03 — Jira backend for /verify (issue #10, epic #6)
+
+- Added a `jira`-mode fork to `.claude/skills/verify/SKILL.md`: step 1 resolves
+  AC from the Jira key on the PR body's `Jira: <JIRA-KEY>` line (via the
+  Atlassian MCP) instead of `gh pr view --json closingIssuesReferences`; AC
+  grading itself is unchanged.
+- Step 6 now additionally posts the `## AC grade` / `## Verdict` summary as a
+  Jira comment and, on request-changes, transitions the Jira issue back to an
+  "in progress"-style status. The existing GitHub-side review (incl. the
+  self-approval-identity check) is untouched.
+
 ## 2026-07-03 — Jira backend for /implement (issue #9, epic #6)
 
 - `.claude/skills/implement/SKILL.md` now forks on `issue_tracker`: `jira`
