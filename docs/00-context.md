@@ -76,3 +76,14 @@ narrative memory; every non-trivial change adds a line here._
   comment fallback instead of attempting and failing `--approve`.
   Worktree `.claude/worktrees/issue-7` and branch `worktree-issue-7` (local +
   remote) removed.
+
+## 2026-07-03 — Jira backend for /sprint (issue #12, epic #6)
+
+- `/sprint` step 1 ("Select work") now forks on `issue_tracker`: `github`
+  unchanged (`gh issue list --label spec --state open`); `jira` queries
+  `jira_project_key` for open Story-type issues via the Atlassian MCP,
+  ordered by priority. N=3 default / ~5 ceiling unchanged either way.
+- Step 6 ("Summarize") now reports Jira keys instead of issue numbers in the
+  Shipped/Blocked/Still-running buckets when `issue_tracker: jira`.
+- Steps 2–5 left untouched per AC — they already compose `/spec`, `/implement`,
+  `/verify`, `/ship`, each carrying its own tracker fork.
