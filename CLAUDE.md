@@ -7,6 +7,21 @@ under in this repository. It is loaded automatically. Read it before acting.
 > stamped from this template, this file ships with it and the project-specific
 > sections below (Architecture map, Gotchas, Commands runner) get filled in.
 
+## Effort policy
+- Medium by default.
+- High only for: hard debugging, multi-file refactors,
+  architecture calls.
+- Low for: formatting, renames, boilerplate.
+
+## Model routing
+- Default to Sonnet 5 for everything.
+- Escalate to Opus 4.8 only after two failed Sonnet attempts,
+  or for the deepest reasoning tasks.
+
+## Cost note
+- Intro pricing ($2/$10) ends Aug 31, 2026. Run large batch
+  jobs before then where possible.
+
 ## Commands
 
 - `<runner> check` — the **single verification gate** (typecheck + lint + test
