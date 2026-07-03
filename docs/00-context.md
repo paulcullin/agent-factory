@@ -77,6 +77,15 @@ narrative memory; every non-trivial change adds a line here._
   Worktree `.claude/worktrees/issue-7` and branch `worktree-issue-7` (local +
   remote) removed.
 
+## 2026-07-03 — Jira backend for /ship (issue #11, epic #6)
+
+- `.claude/skills/ship/SKILL.md` step 4 ("Confirm issue closure") now forks on
+  `issue_tracker`: `github` mode is unchanged (rely on `Closes #<#>`
+  auto-close); `jira` mode resolves the Jira key from the PR body's
+  `Jira: <JIRA-KEY>` line, transitions it to Done via the Atlassian MCP, and
+  comments the merge SHA + PR URL. Guard, merge, and serialization rules are
+  unchanged and tracker-agnostic.
+
 ## 2026-07-03 — Jira backend for /sprint (issue #12, epic #6)
 
 - `/sprint` step 1 ("Select work") now forks on `issue_tracker`: `github`
