@@ -76,3 +76,15 @@ narrative memory; every non-trivial change adds a line here._
   comment fallback instead of attempting and failing `--approve`.
   Worktree `.claude/worktrees/issue-7` and branch `worktree-issue-7` (local +
   remote) removed.
+
+## 2026-07-03 — Jira backend for /implement (issue #9, epic #6)
+
+- `.claude/skills/implement/SKILL.md` now forks on `issue_tracker`: `jira`
+  mode reads AC from the Jira issue via the Atlassian MCP, branches as
+  `feature/<jira-key>`, and opens the PR (still on GitHub) with a
+  `Jira: <JIRA-KEY>` line instead of `Closes #<#>`.
+- After the PR opens, `jira` mode posts the PR URL as a Jira comment and
+  attempts an "in progress"-style transition via the Atlassian MCP.
+- The ambiguous-AC stop rule, the 5-iteration `check` cap, and the
+  never-force-push/never-merge-here invariants are unchanged and
+  tracker-agnostic across both modes.
