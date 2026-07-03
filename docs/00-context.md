@@ -76,3 +76,13 @@ narrative memory; every non-trivial change adds a line here._
   comment fallback instead of attempting and failing `--approve`.
   Worktree `.claude/worktrees/issue-7` and branch `worktree-issue-7` (local +
   remote) removed.
+
+## 2026-07-03 — `/spec` gains a Jira backend (issue #8, epic #6)
+
+- `.claude/skills/spec/SKILL.md` now forks on `issue_tracker`: `github` mode
+  is unchanged (`gh issue create`); `jira` mode creates the Epic and each
+  spec Story via the Atlassian MCP (discovered via `ToolSearch`), scoped to
+  `jira_project_key`, with `Epic: <JIRA-KEY>` back-links and the same
+  `Touches:` line + `### Acceptance criteria` bar as GitHub mode.
+- Returns Jira issue keys (e.g. `PROJ-101`) in place of GitHub numbers when in
+  `jira` mode, for `/sprint` or the user to hand off.
