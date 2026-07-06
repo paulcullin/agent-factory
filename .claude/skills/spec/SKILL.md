@@ -43,11 +43,16 @@ otherwise.
      change, so `/sprint` can detect overlap and serialize. Include this line
      in both modes — `/sprint`'s overlap detection reads it regardless of
      tracker.
+   - If `CLAUDE.md`'s **Monorepo scope** has `monorepo: true`, add a
+     `Package: <package_path>` line beside `Epic:`/`Touches:` so `/sprint` and
+     `/implement` know which package this issue is scoped to.
 
 4. **Create the issues.** Fork on `issue_tracker`:
-   - `github` (default): use `gh issue create`, labels `epic` / `spec`. Use
-     `--body-file -` with a heredoc (proven reliable). Create the epic first
-     so you have its number for the back-links.
+   - `github` (default): use `gh issue create`, labels `epic` / `spec` (plus
+     `package_label` from Monorepo scope, when set, so a shared repo-wide
+     tracker can be filtered to this package). Use `--body-file -` with a
+     heredoc (proven reliable). Create the epic first so you have its number
+     for the back-links.
    - `jira`: use the Atlassian MCP (discovered via `ToolSearch` — do not
      hardcode specific tool names, they're environment-dependent) instead of
      any CLI; per `CLAUDE.md`'s Jira exception this path has no CLI fallback.

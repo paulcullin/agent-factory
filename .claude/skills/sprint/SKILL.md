@@ -23,6 +23,11 @@ collide.
    beyond that, memory pressure and merge-conflict risk on shared files
    outweigh the parallelism).
 
+   If `CLAUDE.md`'s **Monorepo scope** has `monorepo: true`, filter to this
+   package's issues only: `github` mode adds `--label <package_label>` to the
+   `gh issue list` call; `jira` mode filters candidates client-side for a
+   `Package: <package_path>` line in the description.
+
 2. **Detect overlap before parallelizing.** Read each candidate's `Touches:`
    line (and skim its AC). Group issues that touch the same core
    files/modules — those **must be serialized**, not run together. Issues with

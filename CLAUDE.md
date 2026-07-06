@@ -43,6 +43,21 @@ under in this repository. It is loaded automatically. Read it before acting.
   - `jira_site` — the Atlassian Cloud site URL (e.g. `https://yourteam.atlassian.net`).
   - `jira_project_key` — the Jira project key issues are filed under (e.g. `PROJ`).
 
+## Monorepo scope
+
+- `monorepo` — whether this CLAUDE.md is scoped to one package inside a larger
+  monorepo. Allowed values: `false` (default) or `true`.
+- `package_path` — path from the repo root to the scoped package (e.g.
+  `apps/foo`). Only meaningful when `monorepo: true`. All skills treat this as
+  the working root for the `check` gate; files outside it are out of scope.
+- `package_label` — (GitHub mode only) the label used to scope issue
+  selection/creation to this package (e.g. `pkg:foo`), since a shared GitHub
+  tracker is repo-wide. In Jira mode, scope is carried in a `Package:
+  <package_path>` line in the issue body instead — see `/spec`.
+
+> Set these when onboarding a package inside a monorepo — the `/onboard` skill
+> does this interactively. Leave `monorepo: false` for a single-package repo.
+
 ## Agentic mode
 
 - The acceptance criteria in a worked issue **ARE** the spec. Implement exactly
@@ -90,6 +105,13 @@ under in this repository. It is loaded automatically. Read it before acting.
 | `/verify <#>` | "verify PR N", "review this PR" | PR → AC-graded review |
 | `/ship <#>` | "ship PR N", "merge it" | merge + worktree cleanup |
 | `/sprint [N]` | "run the sprint", "work the backlog" | orchestrate N issues in parallel |
+
+`/onboard` is a sixth, one-time bootstrap skill (not part of the per-issue
+pipeline above): after `scripts/adopt.sh` lands the machinery into an existing
+project, `/onboard` interviews you to finish wiring `CLAUDE.md` — the real
+`check` gate, the architecture map, gotchas, issue tracker, and (for
+monorepos) the Monorepo scope section above. Re-run it inside an adopted
+monorepo to onboard another package.
 
 See `docs/WORKFLOW.md` for the end-to-end human guide.
 

@@ -33,81 +33,73 @@ next to yours instead of clobbering. It does **not** touch git history, your CI,
 or create a remote — those already exist. Read its output: every file it adds
 (`+`), skips (`- exists`), or leaves a reference for (`~`) is printed.
 
-## What lands, and what you must finish by hand
+## What lands, and what's left to finish
 
 | Piece | Behavior | Your follow-up |
 |---|---|---|
-| `.claude/skills/*` | Added if absent (per skill) | None — these are the product |
+| `.claude/skills/*` (six, including `onboard`) | Added if absent (per skill) | None — these are the product |
 | `.claude/settings.json` | Added if absent; else `settings.agent-factory.json` written | Merge the allowlist entries you want into yours |
-| `CLAUDE.md` | Added if absent; else `CLAUDE.agent-factory.md` written | **Merge** (see below) — this is the important one |
+| `CLAUDE.md` | Added if absent; else `CLAUDE.agent-factory.md` written | Run `/onboard` (see below) — it does the merge |
 | `.github/ISSUE_TEMPLATE/*`, `PULL_REQUEST_TEMPLATE.md` | Added if absent | If you have your own, fold in the `Epic:`/`Touches:`/AC structure |
 | `docs/WORKFLOW.md`, `docs/ADOPTING.md`, `docs/adr/ADR-0000-template.md` | Added if absent | None |
 | `docs/00-context.md` | Seeded if absent | Keep appending to it |
 | CI | **Not touched** | Ensure CI runs your single `check` gate (see below) |
-| Labels | Only with `--labels` | Otherwise run `scripts/setup-labels.sh` yourself |
+| Labels | Only with `--labels`, or via `/onboard` | Otherwise run `scripts/setup-labels.sh` yourself |
 
-### 1. Merge `CLAUDE.md` (the one step that matters most)
+### 1. Restart Claude Code
 
-If your project already has a `CLAUDE.md`, adoption leaves it alone and writes
-`CLAUDE.agent-factory.md` beside it. Merge these sections from the reference
-copy into yours, then delete the reference:
+Claude Code enumerates skills at startup, so after `adopt.sh` runs, **relaunch
+`claude` in the project** before the six skills (including `onboard`) appear in
+`/skills` and become invocable.
 
-- **Commands** — set `<runner> check` to your project's *real* single gate
-  command (e.g. `make check`, `pnpm check`, `cargo test`, `npm run check`).
-- **Agentic mode** — the AC-is-spec rule, one-worktree-per-issue, no force-push,
-  the 5-iteration cap, comment-and-stop on ambiguity.
-- **Conventions** — colocated tests, pure core, docs-as-part-of-the-change, the
-  deterministic-before-AI rule, and the GitHub MCP-vs-`gh` preference.
+### 2. Run `/onboard` — it finishes the wiring for you
 
-Also fill in the **Architecture map** and **Gotchas** sections with your
-project's reality — that's what makes the skills effective on your codebase.
+`adopt.sh` is deliberately mechanical: it lands files and stops. `/onboard` is
+the interview that finishes the job — it reads your repo (workspace tooling,
+`package.json` scripts, README/CONTRIBUTING, any existing `CLAUDE.md`) and
+infers what it can, asking only what it can't:
 
-### 2. Make the single `check` gate real
+- **Merges `CLAUDE.md`.** If your project already had one, `adopt.sh` left it
+  alone and wrote `CLAUDE.agent-factory.md` beside it. `/onboard` folds the
+  reference copy's **Commands** / **Agentic mode** / **Conventions** sections
+  into yours (or writes a fresh nested `CLAUDE.md` for monorepo scoping — see
+  below), then deletes the reference. You confirm before anything is written.
+- **Wires the real `check` gate.** The whole workflow hinges on one command
+  that runs **typecheck + lint + test + build** and is the sole arbiter of
+  correctness. `/onboard` reads your existing scripts, proposes one command
+  (reusing an existing `check` script if you have one, composing it from
+  lint/typecheck/test/build otherwise), and asks you to confirm or edit it
+  before writing it into `CLAUDE.md`. It does **not** touch your CI — use the
+  template's `.github/workflows/ci.yml` as a reference and make CI run that
+  same command, so "green in CI" == "green locally."
+- **Fills Architecture map and Gotchas** from what it can observe in your
+  source layout, with you correcting anything it gets wrong.
+- **Sets up labels** (`scripts/setup-labels.sh`) or, if you tell it your
+  backlog lives in Jira, asks for `jira_site` and `jira_project_key`, sets
+  `issue_tracker: jira` in `CLAUDE.md`, and confirms the **Atlassian MCP** is
+  connected (a hard requirement in `jira` mode — no CLI fallback, see
+  `CLAUDE.md` → Conventions).
 
-The whole workflow hinges on one command that runs **typecheck + lint + test +
-build** and is the sole arbiter of correctness. An existing project usually has
-the pieces already — wire them into one entry point:
+Once it's done, start with `/spec <an idea>`.
 
-- Add a `check` script/target that chains them (so `/implement` and `/verify`
-  have one thing to run).
-- Make your CI run that **same** command, so "green in CI" == "green locally."
+### Monorepos — scoping to one package
 
-`adopt.sh` deliberately does **not** copy `ci.yml` over your CI. Use the
-template's `.github/workflows/ci.yml` as a reference, but adapt it — your stack
-and existing pipeline win.
+If your repo is a monorepo, `/onboard` defaults to scoping the workflow to
+**one package**, not the whole repo — its own `check` gate, its own worktrees,
+its own acceptance-criteria boundary. Run `/onboard` from inside the package
+directory (e.g. `apps/foo`) and it will:
 
-### 3. Labels
-
-The skills file issues with `epic` / `spec` / `backlog` labels. Create them:
-
-```bash
-scripts/setup-labels.sh            # uses the current repo's remote
-scripts/setup-labels.sh owner/repo # or target an explicit repo
-```
-
-### 4. (Optional) Switch to Jira as the issue tracker
-
-By default the skills read and write GitHub Issues. If your backlog lives in
-Jira instead, one-time setup is:
-
-1. In your merged `CLAUDE.md`, set `issue_tracker: jira` and fill in
-   `jira_site` (your Atlassian Cloud site URL) and `jira_project_key` (e.g.
-   `PROJ`) — see `CLAUDE.md` → Issue tracker in the reference copy.
-2. Confirm the **Atlassian MCP server** is connected in your Claude Code
-   session. Unlike GitHub, there's no `gh`-equivalent CLI fallback for Jira,
-   so this is a hard requirement in `jira` mode (documented as an explicit
-   exception in `CLAUDE.md` → Conventions) — no `scripts/setup-labels.sh`-style
-   script is needed, since Jira's Epic/Story issue types are native and don't
-   need to be created.
-
-That's it — no other file changes; the skills themselves branch on
-`issue_tracker` at run time.
-
-### 5. Restart Claude Code
-
-Claude Code enumerates skills at startup, so after adoption **relaunch `claude`
-in the project** before the five skills appear in `/skills` and become
-invocable. Then start with `/spec <an idea>`.
+- Write a **nested `apps/foo/CLAUDE.md`** rather than touching the repo root's
+  own `CLAUDE.md` — Claude Code loads directory-local `CLAUDE.md` files for
+  work done under that path, so this composes with your monorepo's existing
+  conventions instead of overriding them.
+- Set `## Monorepo scope` in that nested file: `monorepo: true`,
+  `package_path: apps/foo`, and (GitHub mode) a `package_label` like `pkg:foo`
+  used to scope issue selection/creation on a shared, repo-wide tracker.
+  `/spec`, `/implement`, and `/sprint` all read this section and stay inside
+  the package's boundary.
+- Bring in **another package later** by re-running `/onboard` from inside its
+  directory — each package gets its own nested `CLAUDE.md` and its own scope.
 
 ## Adopting only part of it
 

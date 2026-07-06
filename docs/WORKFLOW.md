@@ -2,7 +2,9 @@
 
 This is the human-facing guide to how a project built from **agent-factory**
 goes from idea to merged code. The machinery is five Claude Code skills plus a
-single verification gate.
+single verification gate. A sixth skill, **`/onboard`**, is a one-time
+bootstrap step for adopting into an existing project (see
+`docs/ADOPTING.md`) — it's not part of the idea→ship pipeline below.
 
 ## The pipeline at a glance
 

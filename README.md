@@ -23,6 +23,10 @@ stack example (`node-ts`). The pattern was proven on
   | `/verify <#>` | PR → AC-graded review (the eval) |
   | `/ship <#>` | merge an approved, CI-green PR + clean up |
   | `/sprint [N]` | orchestrate N issues through the pipeline in parallel |
+
+  Plus a sixth, one-time bootstrap skill: **`/onboard`** — interviews you to
+  finish wiring `CLAUDE.md` after adopting into an existing project (see
+  Option C below), including scoping to one package in a monorepo.
 - **`CLAUDE.md`** — the agentic working agreement (the single `check` gate, AC
   = spec, one worktree per issue, no force-push, 5-iteration cap).
 - **Issue + PR templates** that enforce the `Epic:` link and `- [ ]` AC format.
@@ -52,18 +56,20 @@ npm install
 npm run check        # the single gate — typecheck + lint + test + build
 ```
 
-**Option C — adopt into an existing project:** drop the workflow into a repo
-you already have, non-destructively (never overwrites your code, CI, or
-`CLAUDE.md`):
+**Option C — adopt into an existing project (including monorepos):** drop the
+workflow into a repo you already have, non-destructively (never overwrites
+your code, CI, or `CLAUDE.md`):
 
 ```bash
 # from the root of your existing project
 /path/to/agent-factory/scripts/adopt.sh
 ```
 
-Then merge the `CLAUDE.agent-factory.md` reference into your `CLAUDE.md`, point
-the `check` gate at your real command, and restart Claude Code. Full guide:
-**[docs/ADOPTING.md](docs/ADOPTING.md)**.
+Then restart Claude Code and run **`/onboard`** — it interviews you to finish
+wiring `CLAUDE.md` (the real `check` gate, architecture map, gotchas, issue
+tracker) instead of you merging it by hand. In a monorepo, run it from inside
+the package you want to scope the workflow to; it's re-runnable per package.
+Full guide: **[docs/ADOPTING.md](docs/ADOPTING.md)**.
 
 ## The workflow
 

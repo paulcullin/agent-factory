@@ -34,7 +34,11 @@ Check `issue_tracker` in `CLAUDE.md` before step 1.
      issue number, e.g. `feature/proj-101` (lowercase the key for the branch
      name).
 
-   Work **inside that worktree only**.
+   Work **inside that worktree only**. If `CLAUDE.md`'s **Monorepo scope** has
+   `monorepo: true`, note that a worktree still checks out the *whole* repo
+   (git worktrees aren't package-scoped) — treat
+   `<worktree>/<package_path>` as the working root for `<runner> check` and
+   every edit. Never touch files outside `package_path`.
 
 3. **Implement exactly the AC** — nothing more. Each checkbox maps to a code
    change or a test. Keep new logic in the pure core with colocated tests;
