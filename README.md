@@ -29,6 +29,10 @@ stack example (`node-ts`). The pattern was proven on
   Option C below), including scoping to one package in a monorepo.
 - **`CLAUDE.md`** — the agentic working agreement (the single `check` gate, AC
   = spec, one worktree per issue, no force-push, 5-iteration cap).
+- **Choice of issue tracker.** All five skills read/write GitHub Issues by
+  default; set `issue_tracker: jira` in `CLAUDE.md` and they drive Epics and
+  Stories in Jira instead, via the Atlassian MCP (Epic/Story creation, AC
+  retrieval, comments, and status transitions).
 - **Issue + PR templates** that enforce the `Epic:` link and `- [ ]` AC format.
 - **CI** (`.github/workflows/ci.yml`) that runs the `check` gate on push/PR.
 - **A proven stack starter** (`templates/node-ts/`) — strict TS, Vitest, ESLint,
@@ -88,8 +92,10 @@ pipeline diagram. The rationale is recorded in
 
 ## Requirements
 
-- [`gh` CLI](https://cli.github.com/), authenticated (required).
+- [`gh` CLI](https://cli.github.com/), authenticated (required — GitHub mode's
+  portable baseline; every skill works through it even without an MCP).
 - GitHub MCP (recommended — line-level review comments for `/verify`).
+- Atlassian MCP (required, no CLI fallback, only when `issue_tracker: jira`).
 - Node 20+ for the `node-ts` stack.
 
 > **Gotcha:** pushing `.github/workflows/*.yml` needs the `workflow` token
