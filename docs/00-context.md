@@ -132,3 +132,30 @@ narrative memory; every non-trivial change adds a line here._
 - **This closes out epic #6** — all five skills (`spec`, `implement`, `verify`,
   `ship`, `sprint`) now carry a `jira`-mode fork alongside their `github`
   behavior, gated by the shared `issue_tracker` config from issue #7.
+
+## 2026-08-15 — /sprint hardened for autonomous, unattended operation (epic #19)
+
+- Ran `/spec` against the loop-engineering gaps identified in an exploratory
+  conversation about extending agent-factory's pipeline to self-scheduled,
+  unattended runs. Filed epic #19 ("Harden /sprint for autonomous, unattended
+  operation") + five spec issues:
+  - #20 — per-run circuit breaker (stop after 3 consecutive blocked issues;
+    a per-run cap independent of the per-issue 5-iteration cap).
+  - #21 — resumability/idempotency for `/sprint` + `/implement` (resume an
+    existing worktree/branch instead of restarting an interrupted issue).
+  - #22 — a documented kill switch (`.claude/STOP` marker, checked between
+    issues only) plus a `docs/WORKFLOW.md` write-up of how to halt a run.
+  - #23 — retry-with-backoff for transient `gh`/MCP failures, explicitly
+    never applied to real blockers (failing AC, CI red, ambiguous scope).
+  - #24 — docs for wiring `/sprint` to a recurring scheduled trigger, written
+    last so it documents the safety envelope the other four actually add.
+- All five issues carry `Touches: .claude/skills/sprint/SKILL.md` (or
+  `implement/SKILL.md`/`docs/WORKFLOW.md`), so a future `/sprint` run against
+  this epic will serialize most of them per the existing overlap-detection
+  rule — expected and fine, this cluster is one evolving control loop.
+- Recorded the decision in `docs/adr/ADR-0003-autonomous-loop-hardening.md`,
+  including the explicit non-goal: the `/ship` self-approval gap (documented
+  in `CLAUDE.md` → Gotchas) is *not* fixed by this epic — it needs a second
+  bot identity or a policy decision, and stays a known ceiling on full
+  autonomy until that's decided separately.
+- Next step: run `/implement` (directly or via `/sprint`) against #20–#24.
