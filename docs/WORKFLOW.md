@@ -78,6 +78,61 @@ server. See `CLAUDE.md` → Conventions.
 | Playwright / WebKit | Device-realistic E2E once a project has a UI | Per-project |
 | `fewer-permission-prompts` skill | Tighten the AFK allowlist from real runs | Low |
 
+## Autonomous operation
+
+`/sprint` is built to run unattended, not only on manual invocation. Wire it
+to a recurring scheduled trigger — a cron-based Routine, or whatever equivalent
+scheduling mechanism your environment provides — that fires `/sprint [N]` on
+an interval (e.g. every few hours) against the open backlog. Each firing picks
+up wherever the backlog and any in-progress work currently stand; nothing in
+the skill assumes a human kicked it off.
+
+Doing this safely depends on the safety envelope added across epic #19, all
+already built into `.claude/skills/sprint/SKILL.md` (and, for resumability,
+`.claude/skills/implement/SKILL.md`):
+
+- **Circuit breaker (step 2).** Two run-scoped counters — consecutive
+  blocked/failed issues (trips the breaker once it hits 3 in a row, reset to
+  zero on each Shipped outcome) and total issues attempted this run (trips at
+  a per-run cap of 10, independent of `N`) — stop `/sprint` from selecting or
+  spawning any *new* work once either trips. Issues already in flight still
+  run to completion; the breaker just keeps a systemic problem from burning
+  through the whole backlog unattended.
+- **Resumability (step 5's resume-check).** Before spawning a fresh
+  `implement` sub-agent, `/sprint` checks whether a worktree/branch already
+  exists for that issue (`feature/issue-<#>`, or the lowercased Jira-key
+  branch in `jira` mode) and resumes it instead of starting over. This is the
+  case that matters most for a scheduled trigger: a container recycle or a
+  trigger firing mid-run shouldn't throw away work already done on an issue.
+  `/implement`'s own "Isolate" step (and its `check`-loop iteration count)
+  documents the resume path in full.
+- **Kill switch (step 3).** Dropping a `.claude/STOP` file at the repo root
+  halts selection and new spawns at the very next between-issues checkpoint —
+  see "Halting an unattended `/sprint` run" below for both ways to stop a run.
+- **Transient-failure backoff ("Transient failures vs. blockers").**
+  `/sprint`'s own direct `gh`/MCP calls (Select work, Detect overlap, Ship)
+  retry infrastructure hiccups — rate limits, timeouts — up to 4 attempts with
+  2s/4s/8s/16s backoff before surfacing them as blockers, so a flaky network
+  moment doesn't sink an otherwise-healthy unattended run. Real blockers
+  (failing AC, CI red, ambiguous scope, a merge conflict) are never retried —
+  they surface immediately, exactly as in manual use.
+
+Together, these mean an unattended run degrades gracefully under trouble — it
+stops starting new work rather than thrashing indefinitely — and either a
+human or the next scheduled firing can resume cleanly from where it left off.
+
+**Known constraint: `/ship` still needs a human at the merge.** Even with all
+four safeguards above in place, a scheduled `/sprint` run is not fully
+autonomous end to end. Per `CLAUDE.md` → Gotchas ("PR self-approval is
+blocked"): when `/verify` runs under the same identity that authored the PR
+(the default single-account setup), GitHub refuses `gh pr review --approve`
+outright, so `/verify` posts its AC grade as a PR comment instead of an
+approval — a human still has to approve the PR by hand before `/ship`'s guard
+(which requires an approving review) will let it merge. So a scheduled
+`/sprint` run will implement and verify unattended, but shipped PRs still
+queue on that one human checkpoint; account for it in your trigger cadence and
+in how promptly someone checks in on approvals.
+
 ## Halting an unattended `/sprint` run
 
 `/sprint` is meant to be runnable unattended — e.g. on a recurring scheduled

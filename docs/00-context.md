@@ -280,3 +280,34 @@ narrative memory; every non-trivial change adds a line here._
 - Scope limited to `.claude/skills/sprint/SKILL.md` per the issue's
   `Touches:` line — the sole file this issue touches; sibling issue #24 in
   epic #19 covers the scheduled-trigger docs.
+- **Shipped:** PR #29 merged to `main` at `d00c37b`, closing issue #23.
+
+## 2026-08-16 — document autonomous scheduling setup for /sprint (issue #24, epic #19)
+
+- `docs/WORKFLOW.md` gains a new "Autonomous operation" section, placed after
+  the "Recommended tools / MCPs" table and just before the existing "Halting
+  an unattended `/sprint` run" section (so the doc now reads: how to turn
+  unattended running on, immediately followed by how to turn it off). It
+  explains wiring `/sprint [N]` to a recurring scheduled trigger (a cron-based
+  Routine, or an equivalent scheduling mechanism) so it fires against the open
+  backlog without a human invoking it each time.
+- The new section documents the safety envelope epic #19 added as the
+  preconditions for doing this safely, describing what each piece actually
+  does today rather than just naming it: the circuit breaker's two run-scoped
+  counters (step 2), the resume-check before spawning a fresh `implement`
+  sub-agent (step 5), the `.claude/STOP` kill switch (step 3), and the
+  transient-failure retry-with-backoff for `/sprint`'s own direct `gh`/MCP
+  calls ("Transient failures vs. blockers").
+- It also states explicitly, citing `CLAUDE.md` → Gotchas ("PR self-approval
+  is blocked"), that a scheduled `/sprint` run is not fully autonomous end to
+  end: `/verify` running under the same identity that authored the PR can't
+  get GitHub to accept `--approve`, so a human still has to approve each PR
+  by hand before `/ship`'s guard lets it merge — a known checkpoint to plan
+  trigger cadence and approval turnaround around.
+- `README.md`'s "What you get" list gains a one-line pointer to the new
+  section.
+- Scope limited to `docs/WORKFLOW.md`, `README.md`, and this file per the
+  issue's `Touches:` line; `.claude/skills/*` and `CLAUDE.md` are untouched
+  here — this issue only documents mechanics #20–#23 already built.
+- **This closes out epic #19** — all five spec issues (#20–#24) are now
+  implemented, pending final merge of this PR.
