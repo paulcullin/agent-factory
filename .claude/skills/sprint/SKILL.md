@@ -63,12 +63,27 @@ collide.
 4. **Implement in parallel (per group).** Before spawning, re-check the
    circuit breaker (step 2) — if it has tripped, stop spawning and route any
    remaining candidates to Circuit-broken instead. Otherwise, for each
-   independent issue, spawn an `implement` sub-agent:
-   - `isolation: "worktree"`
-   - `run_in_background: true`
+   independent issue:
+   - **Check for a resumable worktree/branch first.** Before spawning a fresh
+     `implement` sub-agent, check whether a worktree/branch already exists
+     for this issue number — `feature/issue-<#>` in `github` mode, or the
+     lowercased Jira-key branch (e.g. `feature/proj-101`) in `jira` mode. This
+     is the common case when `/sprint` itself is being resumed after an
+     interruption: a prior round may have already gotten partway through an
+     issue. If a matching worktree/branch exists, **resume** the `implement`
+     sub-agent against that existing worktree instead of creating a new one —
+     `/implement`'s own "Isolate" step documents how it reuses the existing
+     state rather than re-scaffolding. If no matching worktree/branch exists,
+     spawn fresh as usual.
+   - Spawn (or resume) an `implement` sub-agent:
+     - `isolation: "worktree"`
+     - `run_in_background: true`
 
    Each gets its own worktree + branch, loops against `check`, and opens a PR.
-   Count the spawn against the run's total-attempted counter (step 2).
+   Count the spawn against the run's total-attempted counter (step 2) — a
+   resumed issue counts once, at the round it was first attempted; resuming
+   it in a later round is a continuation of that same attempt, not a new one,
+   so don't increment the counter again for it.
 
 5. **Verify on landing.** As each PR opens, spawn a `verify` sub-agent for it.
    It grades AC + confirms CI + optional smoke test, then approves or requests

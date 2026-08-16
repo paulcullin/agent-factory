@@ -33,6 +33,18 @@ Check `issue_tracker` in `CLAUDE.md` before step 1.
    - `jira` mode: name the branch with the Jira key in place of the GitHub
      issue number, e.g. `feature/proj-101` (lowercase the key for the branch
      name).
+   - **Resume path.** Before scaffolding anything, check whether a
+     worktree/branch for this issue already exists (`feature/issue-<#>`, or
+     the Jira-key equivalent in `jira` mode) — typically because a prior run
+     was interrupted (crash, timeout, `/sprint` circuit breaker) before the
+     issue shipped. If it does, **reuse it**: re-enter the existing worktree
+     (or `git worktree add` against the existing branch if the worktree
+     directory itself was cleaned up but the branch survived) and continue
+     from its current committed state. Do not delete, re-create, or
+     force-reset the branch, and do not redo work already committed — pick
+     back up at step 3 with whatever the branch already has, and carry the
+     iteration count forward per step 4's resume tracking below. Only fall
+     back to fresh scaffolding when no such worktree/branch exists.
 
    Work **inside that worktree only**. If `CLAUDE.md`'s **Monorepo scope** has
    `monorepo: true`, note that a worktree still checks out the *whole* repo
@@ -49,6 +61,18 @@ Check `issue_tracker` in `CLAUDE.md` before step 1.
    blocker rather than thrashing — comment on the issue with the failing
    output (in `jira` mode, comment on the Jira issue via the Atlassian MCP).
    This cap and the ambiguous-AC rule apply identically in both modes.
+
+   **Tracking the cap across a resume.** The cap is scoped to the issue's
+   branch, not to any single process's lifetime — resuming a worktree (step
+   2's resume path) must not reset the count back to 5 fresh iterations, or a
+   repeatedly-interrupted issue could loop indefinitely across resumes. On
+   resume, recover how many iterations are already spent by counting the
+   commits already made on the branch since it diverged from `main` — e.g.
+   `git log main..HEAD --oneline | wc -l` — and treat that count as
+   iterations already consumed against the cap. Continue the loop from that
+   count rather than from zero: e.g. a branch with 3 commits already on it
+   gets at most 2 more `check`-and-fix iterations before it must stop and
+   surface a blocker.
 
 5. **Commit & open the PR.** The PR always lives on GitHub, in both modes.
    - Commit message references the issue: the GitHub issue number in `github`
