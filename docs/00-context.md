@@ -159,3 +159,30 @@ narrative memory; every non-trivial change adds a line here._
   bot identity or a policy decision, and stays a known ceiling on full
   autonomy until that's decided separately.
 - Next step: run `/implement` (directly or via `/sprint`) against #20–#24.
+
+## 2026-08-16 — per-run circuit breaker for /sprint (issue #20, epic #19)
+
+- `.claude/skills/sprint/SKILL.md` gains a new step 2, "Circuit breaker —
+  run-level safeguard," inserted between Select work and Detect overlap (the
+  rest of the procedure renumbers accordingly). It tracks two run-scoped
+  counters that live only for the duration of one `/sprint` invocation:
+  - Consecutive blocked/failed issues — trips the breaker at **3** in a row,
+    reset to zero on each Shipped outcome.
+  - Total issues attempted this run (every `implement` sub-agent spawned,
+    across rounds, including re-triggers) — trips the breaker at a per-run
+    cap of **10**, independent of the `N` argument, which only bounds a
+    single selection round.
+  Once tripped, Select work (step 1) and Implement in parallel (step 4) both
+  stop starting new work for the rest of the run; issues already in flight
+  run to completion.
+- Summarize (now step 7) gains a fourth outcome bucket, **Circuit-broken**,
+  for candidates identified but never attempted because the breaker had
+  already tripped, alongside Shipped/Blocked/Still running.
+- Conflict rules now has a bullet distinguishing this run-level breaker from
+  the existing per-issue 5-iteration `/implement` cap: the 5-iteration cap
+  governs one issue's internal retry loop, while the breaker governs whether
+  `/sprint` keeps starting new issues at all this run — an issue can exhaust
+  its own cap and land in Blocked without tripping the breaker by itself.
+- Scope was limited to `.claude/skills/sprint/SKILL.md` per the issue's
+  `Touches:` line; `implement/SKILL.md` and `CLAUDE.md` are untouched here —
+  other issues in epic #19 (#21–#24) cover those.
