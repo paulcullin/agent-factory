@@ -78,6 +78,31 @@ server. See `CLAUDE.md` → Conventions.
 | Playwright / WebKit | Device-realistic E2E once a project has a UI | Per-project |
 | `fewer-permission-prompts` skill | Tighten the AFK allowlist from real runs | Low |
 
+## Halting an unattended `/sprint` run
+
+`/sprint` is meant to be runnable unattended — e.g. on a recurring scheduled
+trigger — but any autonomous loop needs a clean way to stop it. There are two
+ways, in order of reversibility:
+
+1. **Disable the scheduling trigger.** If `/sprint` is firing on a recurring
+   schedule, disabling (or deleting) that trigger stops future invocations
+   from starting at all. This is the right choice for a planned pause: no
+   in-progress run is interrupted, nothing needs cleaning up, and you just
+   re-enable the trigger when ready to resume.
+2. **Drop the `.claude/STOP` marker file.** For an immediate halt on a run
+   that's already in progress, create an empty `.claude/STOP` file at the
+   repo root (e.g. `touch .claude/STOP`). `/sprint`'s kill-switch step
+   (`.claude/skills/sprint/SKILL.md`, step 3) checks for this file **only
+   between issues** — before selecting new work and before spawning each new
+   `implement` sub-agent — and never mid-issue. Any issue already in
+   implement/verify/ship keeps running to completion; only the *not-yet-started*
+   selected issues are left untouched, and the run's summary reports them in
+   a **Halted** bucket. Remove the file once you're ready to let future runs
+   select new work again.
+
+Use (1) for a durable pause between runs, and (2) when you need the very
+next between-issues checkpoint of a run already underway to stop immediately.
+
 ## Known gotchas
 
 - **Workflow token scope.** Pushing a `.github/workflows/*.yml` file needs the

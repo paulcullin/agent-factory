@@ -217,3 +217,34 @@ narrative memory; every non-trivial change adds a line here._
 - Scope limited to the two `SKILL.md` files per the issue's `Touches:` line;
   `CLAUDE.md` is untouched here — sibling issues #22–#24 in epic #19 cover
   the kill switch, retry-with-backoff, and scheduled-trigger docs.
+- **Shipped:** PR #27 merged to `main` at `b705603`, closing issue #21.
+
+## 2026-08-16 — kill switch for /sprint (issue #22, epic #19)
+
+- `.claude/skills/sprint/SKILL.md` gains a new step 3, "Kill switch —
+  `.claude/STOP` marker" (inserted between Circuit breaker and Detect
+  overlap, the rest of the procedure renumbers accordingly, 4 through 8). It
+  checks for a `.claude/STOP` file at the repo root at the same two
+  checkpoints as the circuit breaker: before selecting new work (step 1) and
+  before spawning each new `implement` sub-agent (step 5) — including before
+  the very first issue of the run. If present, `/sprint` halts cleanly:
+  no further selection, no further spawning, for the rest of the run.
+- Made explicit that the check happens **only between issues**, never by
+  interrupting an issue already in flight — implement/verify/ship in
+  progress always runs to completion, exactly like the circuit breaker.
+  Unlike the breaker (automatic, trips on 3 consecutive blocked issues or
+  the total-attempted cap), the STOP marker is a manual, human-operated kill
+  switch for an operator watching an unattended run.
+- Summarize (now step 8) gains a fifth outcome bucket, **Halted**, listing
+  any selected-but-untouched candidate left in the run because the kill
+  switch found `.claude/STOP` before it could be spawned — alongside
+  Shipped/Blocked/Still running/Circuit-broken.
+- `docs/WORKFLOW.md` gains a new "Halting an unattended `/sprint` run"
+  section (placed just before "Known gotchas") documenting the two ways to
+  stop a scheduled/unattended run: disabling its scheduling trigger (durable
+  pause, no run interrupted) or dropping `.claude/STOP` (immediate halt on
+  the next between-issues checkpoint of a run already underway).
+- Scope limited to `.claude/skills/sprint/SKILL.md` and `docs/WORKFLOW.md`
+  per the issue's `Touches:` line; `CLAUDE.md` and
+  `.claude/skills/implement/SKILL.md` are untouched here — sibling issues
+  #23–#24 in epic #19 cover retry-with-backoff and scheduled-trigger docs.
