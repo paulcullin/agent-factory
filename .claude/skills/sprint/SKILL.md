@@ -29,7 +29,8 @@ collide.
    `Package: <package_path>` line in the description.
 
    Skip selection entirely if the circuit breaker (step 2) has already
-   tripped for this run.
+   tripped for this run, or if the kill switch (step 3) finds `.claude/STOP`
+   present.
 
 2. **Circuit breaker — run-level safeguard.** Before selecting or spawning any
    new work — including when `/sprint` is re-triggered mid-run and discovers
@@ -37,7 +38,7 @@ collide.
    only for the duration of this run; they reset when a new `/sprint`
    invocation starts, never mid-run):
    - **Consecutive blocked/failed.** A running count of how many issues in a
-     row landed in the Blocked outcome (step 7). Increment on each Blocked
+     row landed in the Blocked outcome (step 8). Increment on each Blocked
      outcome; reset to zero on each Shipped outcome. Trip the breaker once
      this hits **3**.
    - **Total attempted this run.** A running count of every issue that has had
@@ -48,22 +49,48 @@ collide.
      round picks up, not how many the run attempts in total.
 
    Once either counter trips the breaker: stop selecting new work (step 1) and
-   stop spawning new `implement` sub-agents (step 4) for the rest of the run.
+   stop spawning new `implement` sub-agents (step 5) for the rest of the run.
    Issues already in flight (implement/verify/ship in progress) run to
    completion — the breaker blocks new work, it does not abort work already
    underway. Any candidate that was identified but never attempted because the
    breaker had already tripped goes into the Circuit-broken bucket in
-   Summarize (step 7), not Blocked.
+   Summarize (step 8), not Blocked.
 
-3. **Detect overlap before parallelizing.** Read each candidate's `Touches:`
+3. **Kill switch — `.claude/STOP` marker.** Before selecting any new work
+   (step 1) and again before spawning each new `implement` sub-agent (step 5)
+   — including before the very first issue of the run — check whether a
+   `.claude/STOP` file exists at the repo root. If it does, halt cleanly: stop
+   selecting new work and stop spawning any further `implement` sub-agents for
+   the rest of the run.
+
+   This check happens **only between issues**, at those two checkpoints — it
+   never interrupts an issue already in flight. Exactly like the circuit
+   breaker in step 2, an issue already in implement/verify/ship runs to
+   completion once started; the kill switch only stops *new* work from
+   starting. Any issue that was selected in step 1 but never had an
+   `implement` sub-agent spawned because `.claude/STOP` was found goes into
+   the **Halted** bucket in Summarize (step 8), listed by issue number (or
+   Jira key) so a human can see exactly which selected issues were left
+   untouched.
+
+   The marker is a manual, human-operated kill switch — distinct from the
+   automatic circuit breaker in step 2. It exists for cases like: an operator
+   watching an unattended/scheduled run notices a problem and wants the very
+   next between-issues checkpoint to stop, without waiting for 3 consecutive
+   blocked issues or the total-attempted cap to trip the breaker on its own.
+   Remove the file to resume normal selection on the next run.
+
+4. **Detect overlap before parallelizing.** Read each candidate's `Touches:`
    line (and skim its AC). Group issues that touch the same core
    files/modules — those **must be serialized**, not run together. Issues with
    disjoint footprints can run in parallel.
 
-4. **Implement in parallel (per group).** Before spawning, re-check the
+5. **Implement in parallel (per group).** Before spawning, re-check the
    circuit breaker (step 2) — if it has tripped, stop spawning and route any
-   remaining candidates to Circuit-broken instead. Otherwise, for each
-   independent issue:
+   remaining candidates to Circuit-broken instead. Also re-check the kill
+   switch (step 3) — if `.claude/STOP` is present, stop spawning and route any
+   remaining candidates to Halted instead. Otherwise, for each independent
+   issue:
    - **Check for a resumable worktree/branch first.** Before spawning a fresh
      `implement` sub-agent, check whether a worktree/branch already exists
      for this issue number — `feature/issue-<#>` in `github` mode, or the
@@ -85,18 +112,18 @@ collide.
    it in a later round is a continuation of that same attempt, not a new one,
    so don't increment the counter again for it.
 
-5. **Verify on landing.** As each PR opens, spawn a `verify` sub-agent for it.
+6. **Verify on landing.** As each PR opens, spawn a `verify` sub-agent for it.
    It grades AC + confirms CI + optional smoke test, then approves or requests
    changes. On request-changes, hand back to that issue's `implement` agent for
    another loop (respect the 5-iteration cap, then surface a blocker). An
    issue that ends this run as Blocked updates the consecutive-blocked counter
    from step 2.
 
-6. **Ship — serialized.** Merge approved PRs **one at a time**. After each
+7. **Ship — serialized.** Merge approved PRs **one at a time**. After each
    merge, re-run `<runner> check` on `main` before merging the next, so two
    branches that were green in isolation can't land a broken combination.
 
-7. **Summarize.** Report four buckets:
+8. **Summarize.** Report five buckets:
    - **Shipped** — issue # (or Jira key when `issue_tracker: jira`), PR #,
      merge SHA.
    - **Blocked** — issue # (or Jira key), the reason (failing AC, ambiguous
@@ -106,6 +133,9 @@ collide.
      never attempted because the breaker (step 2) had already tripped, and
      which trip condition caused it (3 consecutive blocked, or the total-
      attempted cap).
+   - **Halted** — issue # (or Jira key) for any candidate that was selected
+     but never attempted because the kill switch (step 3) found
+     `.claude/STOP` present before it could be spawned.
 
 ## Conflict rules (do not violate)
 
