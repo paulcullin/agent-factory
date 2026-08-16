@@ -32,6 +32,11 @@ collide.
    tripped for this run, or if the kill switch (step 3) finds `.claude/STOP`
    present.
 
+   This step calls `gh`/the Atlassian MCP directly (not via a spawned
+   sub-agent) — see **Transient failures vs. blockers** below for how to tell
+   a transient failure here apart from a blocker, and the retry behavior that
+   applies.
+
 2. **Circuit breaker — run-level safeguard.** Before selecting or spawning any
    new work — including when `/sprint` is re-triggered mid-run and discovers
    issues it hadn't seen before — check two run-scoped counters (both live
@@ -85,6 +90,11 @@ collide.
    files/modules — those **must be serialized**, not run together. Issues with
    disjoint footprints can run in parallel.
 
+   Reading each candidate's `Touches:`/AC is itself a direct `gh`/MCP call
+   (`/sprint` making it, not a spawned sub-agent) — see **Transient failures
+   vs. blockers** below for how to tell a transient failure here apart from a
+   blocker, and the retry behavior that applies.
+
 5. **Implement in parallel (per group).** Before spawning, re-check the
    circuit breaker (step 2) — if it has tripped, stop spawning and route any
    remaining candidates to Circuit-broken instead. Also re-check the kill
@@ -123,6 +133,13 @@ collide.
    merge, re-run `<runner> check` on `main` before merging the next, so two
    branches that were green in isolation can't land a broken combination.
 
+   Checking CI status and merging (`gh pr checks`, `gh pr merge`, or their MCP
+   equivalents) are calls `/sprint` makes directly at this step — see
+   **Transient failures vs. blockers** below for how to tell a transient
+   failure here apart from a blocker, and the retry behavior that applies. A
+   merge conflict surfacing from `gh pr merge` is a blocker, not a transient
+   failure — see below.
+
 8. **Summarize.** Report five buckets:
    - **Shipped** — issue # (or Jira key when `issue_tracker: jira`), PR #,
      merge SHA.
@@ -151,6 +168,41 @@ collide.
   this run. An issue can exhaust its own 5-iteration cap and land in Blocked
   without ever tripping the breaker; the breaker only trips after 3 such
   issues land in Blocked consecutively, or the total-attempted cap is hit.
+
+## Transient failures vs. blockers
+
+Three steps make `gh`/MCP calls **directly**, rather than delegating them to
+a spawned sub-agent: **Select work** (step 1 — listing candidate issues),
+**Detect overlap** (step 4 — reading each candidate's `Touches:`/AC), and
+**Ship** (step 7 — checking CI status and merging). The other steps that
+touch `gh`/MCP (Implement in parallel, Verify on landing) do so by spawning
+`implement`/`verify` sub-agents that make their own calls under their own
+skills' procedures — this section governs only `/sprint`'s own direct calls,
+not those.
+
+At each of those three steps, tell apart:
+
+- **A transient failure** — an infrastructure hiccup that says nothing about
+  the issue or PR itself: a `gh`/GitHub API rate limit, a request timeout, an
+  Atlassian MCP call that errors out. The same call would plausibly succeed a
+  moment later.
+- **A real blocker** — the call itself succeeded, but what it returned is bad
+  news about the issue or PR: a failing AC, CI red, ambiguous scope, a merge
+  conflict. Retrying doesn't change any of these — they're facts about the
+  work, not about the network.
+
+On a transient failure, retry the same call with exponential backoff: up to
+**4 attempts**, waiting **2s, then 4s, then 8s, then 16s** between attempts.
+If the 4th retry still fails, stop retrying and treat it as a blocker —
+surface it in Summarize (step 8) exactly as any other blocker, rather than
+silently dropping the candidate or looping on it indefinitely.
+
+**Real blockers are never retried.** A failing AC, CI red, ambiguous scope,
+or a merge conflict surfaces immediately the first time it's seen — this is
+unchanged from `/sprint`'s existing behavior. Retry-with-backoff exists only
+to absorb infrastructure flakiness in `/sprint`'s own `gh`/MCP calls; it is
+never used to paper over, second-guess, or wait out a genuine blocking
+condition.
 
 ## Notes
 
