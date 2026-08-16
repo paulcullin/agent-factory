@@ -186,3 +186,34 @@ narrative memory; every non-trivial change adds a line here._
 - Scope was limited to `.claude/skills/sprint/SKILL.md` per the issue's
   `Touches:` line; `implement/SKILL.md` and `CLAUDE.md` are untouched here —
   other issues in epic #19 (#21–#24) cover those.
+- **Shipped:** PR #26 merged to `main` at `ec30c12`, closing issue #20.
+
+## 2026-08-16 — resumability for /sprint and /implement (issue #21, epic #19)
+
+- `.claude/skills/sprint/SKILL.md` step 4, "Implement in parallel (per
+  group)" (renumbered by #20's new circuit-breaker step): before spawning a
+  fresh `implement` sub-agent for an issue, now checks whether a
+  worktree/branch already exists for that issue number — `feature/issue-<#>`,
+  or the lowercased Jira-key branch in `jira` mode. If one exists (typically
+  because `/sprint` itself is resuming an interrupted run), it resumes the
+  `implement` sub-agent against that existing worktree instead of spawning a
+  new one. A resumed issue counts once against the run's total-attempted
+  circuit-breaker counter (step 2), at the round it was first attempted, not
+  again on resume.
+- `.claude/skills/implement/SKILL.md` step 2, "Isolate," gains an explicit
+  **Resume path** bullet: before scaffolding, check for an existing
+  worktree/branch for the issue; if found, reuse it and continue from its
+  current committed state (re-entering the worktree, or `git worktree add`
+  against the surviving branch if the worktree directory itself was cleaned
+  up) rather than deleting, re-creating, or force-resetting it.
+- `.claude/skills/implement/SKILL.md` step 4, the `check`-loop cap, gains a
+  **Tracking the cap across a resume** note: the 5-iteration cap is scoped to
+  the issue's branch, not a single process's lifetime. On resume, recover
+  iterations already spent by counting commits already made on the branch
+  since it diverged from `main` (e.g. `git log main..HEAD --oneline | wc
+  -l`), and continue the loop from that count rather than resetting to zero —
+  so a repeatedly-interrupted issue can't dodge the cap and loop indefinitely
+  across resumes.
+- Scope limited to the two `SKILL.md` files per the issue's `Touches:` line;
+  `CLAUDE.md` is untouched here — sibling issues #22–#24 in epic #19 cover
+  the kill switch, retry-with-backoff, and scheduled-trigger docs.
