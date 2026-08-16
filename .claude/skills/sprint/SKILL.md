@@ -28,33 +28,69 @@ collide.
    `gh issue list` call; `jira` mode filters candidates client-side for a
    `Package: <package_path>` line in the description.
 
-2. **Detect overlap before parallelizing.** Read each candidate's `Touches:`
+   Skip selection entirely if the circuit breaker (step 2) has already
+   tripped for this run.
+
+2. **Circuit breaker — run-level safeguard.** Before selecting or spawning any
+   new work — including when `/sprint` is re-triggered mid-run and discovers
+   issues it hadn't seen before — check two run-scoped counters (both live
+   only for the duration of this run; they reset when a new `/sprint`
+   invocation starts, never mid-run):
+   - **Consecutive blocked/failed.** A running count of how many issues in a
+     row landed in the Blocked outcome (step 7). Increment on each Blocked
+     outcome; reset to zero on each Shipped outcome. Trip the breaker once
+     this hits **3**.
+   - **Total attempted this run.** A running count of every issue that has had
+     an `implement` sub-agent spawned this run, across every round (including
+     re-triggers). Trip the breaker once this hits the per-run cap — default
+     **10** — regardless of how many have blocked. This cap is independent of
+     `N` from step 1, which only bounds how many issues a single selection
+     round picks up, not how many the run attempts in total.
+
+   Once either counter trips the breaker: stop selecting new work (step 1) and
+   stop spawning new `implement` sub-agents (step 4) for the rest of the run.
+   Issues already in flight (implement/verify/ship in progress) run to
+   completion — the breaker blocks new work, it does not abort work already
+   underway. Any candidate that was identified but never attempted because the
+   breaker had already tripped goes into the Circuit-broken bucket in
+   Summarize (step 7), not Blocked.
+
+3. **Detect overlap before parallelizing.** Read each candidate's `Touches:`
    line (and skim its AC). Group issues that touch the same core
    files/modules — those **must be serialized**, not run together. Issues with
    disjoint footprints can run in parallel.
 
-3. **Implement in parallel (per group).** For each independent issue, spawn an
-   `implement` sub-agent:
+4. **Implement in parallel (per group).** Before spawning, re-check the
+   circuit breaker (step 2) — if it has tripped, stop spawning and route any
+   remaining candidates to Circuit-broken instead. Otherwise, for each
+   independent issue, spawn an `implement` sub-agent:
    - `isolation: "worktree"`
    - `run_in_background: true`
 
    Each gets its own worktree + branch, loops against `check`, and opens a PR.
+   Count the spawn against the run's total-attempted counter (step 2).
 
-4. **Verify on landing.** As each PR opens, spawn a `verify` sub-agent for it.
+5. **Verify on landing.** As each PR opens, spawn a `verify` sub-agent for it.
    It grades AC + confirms CI + optional smoke test, then approves or requests
    changes. On request-changes, hand back to that issue's `implement` agent for
-   another loop (respect the 5-iteration cap, then surface a blocker).
+   another loop (respect the 5-iteration cap, then surface a blocker). An
+   issue that ends this run as Blocked updates the consecutive-blocked counter
+   from step 2.
 
-5. **Ship — serialized.** Merge approved PRs **one at a time**. After each
+6. **Ship — serialized.** Merge approved PRs **one at a time**. After each
    merge, re-run `<runner> check` on `main` before merging the next, so two
    branches that were green in isolation can't land a broken combination.
 
-6. **Summarize.** Report three buckets:
+7. **Summarize.** Report four buckets:
    - **Shipped** — issue # (or Jira key when `issue_tracker: jira`), PR #,
      merge SHA.
    - **Blocked** — issue # (or Jira key), the reason (failing AC, ambiguous
      scope, CI).
    - **Still running** — issue # (or Jira key), current stage.
+   - **Circuit-broken** — issue # (or Jira key) for any candidate that was
+     never attempted because the breaker (step 2) had already tripped, and
+     which trip condition caused it (3 consecutive blocked, or the total-
+     attempted cap).
 
 ## Conflict rules (do not violate)
 
@@ -63,6 +99,13 @@ collide.
 - Never merge in parallel. Ship is always one-at-a-time with a `check` between.
 - Respect each issue's 5-iteration implement cap; escalate as a blocker rather
   than looping forever.
+- The run-level circuit breaker (step 2) is independent of, and does not
+  replace, each issue's existing 5-iteration `/implement` cap: the 5-iteration
+  cap governs one issue's internal implement→check→fix retry loop, while the
+  breaker governs whether `/sprint` keeps starting *new* issues at all during
+  this run. An issue can exhaust its own 5-iteration cap and land in Blocked
+  without ever tripping the breaker; the breaker only trips after 3 such
+  issues land in Blocked consecutively, or the total-attempted cap is hit.
 
 ## Notes
 
