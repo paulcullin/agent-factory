@@ -248,3 +248,35 @@ narrative memory; every non-trivial change adds a line here._
   per the issue's `Touches:` line; `CLAUDE.md` and
   `.claude/skills/implement/SKILL.md` are untouched here — sibling issues
   #23–#24 in epic #19 cover retry-with-backoff and scheduled-trigger docs.
+- **Shipped:** PR #28 merged to `main` at `74be142`, closing issue #22.
+
+## 2026-08-16 — retry-with-backoff for transient failures in /sprint (issue #23, epic #19)
+
+- `.claude/skills/sprint/SKILL.md` gains a new "Transient failures vs.
+  blockers" section (placed after Conflict rules, before Notes) identifying
+  the three steps where `/sprint` itself makes `gh`/MCP calls directly rather
+  than delegating them to a spawned sub-agent: Select work (step 1, listing
+  candidate issues), Detect overlap (step 4, reading each candidate's
+  `Touches:`/AC), and Ship (step 7, checking CI status and merging).
+  Implement in parallel and Verify on landing are explicitly out of scope for
+  this section — they spawn `implement`/`verify` sub-agents that make their
+  own calls under their own skills' procedures.
+- The new section defines a transient failure (a `gh`/GitHub API rate limit,
+  a timeout, an Atlassian MCP call erroring out — infrastructure flakiness
+  that says nothing about the issue/PR itself) versus a real blocker (a
+  failing AC, CI red, ambiguous scope, a merge conflict — the call succeeded
+  but what it returned is bad news). On a transient failure, retry the same
+  call with exponential backoff: up to 4 attempts, waiting 2s, 4s, 8s, then
+  16s between attempts; if the 4th retry still fails, treat it as a blocker
+  and surface it in Summarize like any other.
+- Made explicit that real blockers are never retried — they surface
+  immediately on first encounter, unchanged from `/sprint`'s existing
+  behavior; retry-with-backoff exists only to absorb infrastructure
+  flakiness in `/sprint`'s own direct calls, never to paper over a genuine
+  blocking condition.
+- Each of the three direct-call steps (1, 4, 7) gets a short pointer back to
+  this section, so the transient-vs-blocker distinction is documented at
+  every step that calls out to `gh`/an MCP, not only in one central place.
+- Scope limited to `.claude/skills/sprint/SKILL.md` per the issue's
+  `Touches:` line — the sole file this issue touches; sibling issue #24 in
+  epic #19 covers the scheduled-trigger docs.
