@@ -3,3 +3,7 @@
 *.log
 node_modules/
 .claude/settings.local.json
+
+# Isolated per-issue/per-agent git worktrees created by /implement and /sprint
+# (see docs/WORKFLOW.md). Transient working state, never committed.
+.claude/worktrees/
