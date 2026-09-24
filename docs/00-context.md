@@ -133,6 +133,185 @@ narrative memory; every non-trivial change adds a line here._
   `ship`, `sprint`) now carry a `jira`-mode fork alongside their `github`
   behavior, gated by the shared `issue_tracker` config from issue #7.
 
+## 2026-08-15 — /sprint hardened for autonomous, unattended operation (epic #19)
+
+- Ran `/spec` against the loop-engineering gaps identified in an exploratory
+  conversation about extending agent-factory's pipeline to self-scheduled,
+  unattended runs. Filed epic #19 ("Harden /sprint for autonomous, unattended
+  operation") + five spec issues:
+  - #20 — per-run circuit breaker (stop after 3 consecutive blocked issues;
+    a per-run cap independent of the per-issue 5-iteration cap).
+  - #21 — resumability/idempotency for `/sprint` + `/implement` (resume an
+    existing worktree/branch instead of restarting an interrupted issue).
+  - #22 — a documented kill switch (`.claude/STOP` marker, checked between
+    issues only) plus a `docs/WORKFLOW.md` write-up of how to halt a run.
+  - #23 — retry-with-backoff for transient `gh`/MCP failures, explicitly
+    never applied to real blockers (failing AC, CI red, ambiguous scope).
+  - #24 — docs for wiring `/sprint` to a recurring scheduled trigger, written
+    last so it documents the safety envelope the other four actually add.
+- All five issues carry `Touches: .claude/skills/sprint/SKILL.md` (or
+  `implement/SKILL.md`/`docs/WORKFLOW.md`), so a future `/sprint` run against
+  this epic will serialize most of them per the existing overlap-detection
+  rule — expected and fine, this cluster is one evolving control loop.
+- Recorded the decision in `docs/adr/ADR-0003-autonomous-loop-hardening.md`,
+  including the explicit non-goal: the `/ship` self-approval gap (documented
+  in `CLAUDE.md` → Gotchas) is *not* fixed by this epic — it needs a second
+  bot identity or a policy decision, and stays a known ceiling on full
+  autonomy until that's decided separately.
+- Next step: run `/implement` (directly or via `/sprint`) against #20–#24.
+
+## 2026-08-16 — per-run circuit breaker for /sprint (issue #20, epic #19)
+
+- `.claude/skills/sprint/SKILL.md` gains a new step 2, "Circuit breaker —
+  run-level safeguard," inserted between Select work and Detect overlap (the
+  rest of the procedure renumbers accordingly). It tracks two run-scoped
+  counters that live only for the duration of one `/sprint` invocation:
+  - Consecutive blocked/failed issues — trips the breaker at **3** in a row,
+    reset to zero on each Shipped outcome.
+  - Total issues attempted this run (every `implement` sub-agent spawned,
+    across rounds, including re-triggers) — trips the breaker at a per-run
+    cap of **10**, independent of the `N` argument, which only bounds a
+    single selection round.
+  Once tripped, Select work (step 1) and Implement in parallel (step 4) both
+  stop starting new work for the rest of the run; issues already in flight
+  run to completion.
+- Summarize (now step 7) gains a fourth outcome bucket, **Circuit-broken**,
+  for candidates identified but never attempted because the breaker had
+  already tripped, alongside Shipped/Blocked/Still running.
+- Conflict rules now has a bullet distinguishing this run-level breaker from
+  the existing per-issue 5-iteration `/implement` cap: the 5-iteration cap
+  governs one issue's internal retry loop, while the breaker governs whether
+  `/sprint` keeps starting new issues at all this run — an issue can exhaust
+  its own cap and land in Blocked without tripping the breaker by itself.
+- Scope was limited to `.claude/skills/sprint/SKILL.md` per the issue's
+  `Touches:` line; `implement/SKILL.md` and `CLAUDE.md` are untouched here —
+  other issues in epic #19 (#21–#24) cover those.
+- **Shipped:** PR #26 merged to `main` at `ec30c12`, closing issue #20.
+
+## 2026-08-16 — resumability for /sprint and /implement (issue #21, epic #19)
+
+- `.claude/skills/sprint/SKILL.md` step 4, "Implement in parallel (per
+  group)" (renumbered by #20's new circuit-breaker step): before spawning a
+  fresh `implement` sub-agent for an issue, now checks whether a
+  worktree/branch already exists for that issue number — `feature/issue-<#>`,
+  or the lowercased Jira-key branch in `jira` mode. If one exists (typically
+  because `/sprint` itself is resuming an interrupted run), it resumes the
+  `implement` sub-agent against that existing worktree instead of spawning a
+  new one. A resumed issue counts once against the run's total-attempted
+  circuit-breaker counter (step 2), at the round it was first attempted, not
+  again on resume.
+- `.claude/skills/implement/SKILL.md` step 2, "Isolate," gains an explicit
+  **Resume path** bullet: before scaffolding, check for an existing
+  worktree/branch for the issue; if found, reuse it and continue from its
+  current committed state (re-entering the worktree, or `git worktree add`
+  against the surviving branch if the worktree directory itself was cleaned
+  up) rather than deleting, re-creating, or force-resetting it.
+- `.claude/skills/implement/SKILL.md` step 4, the `check`-loop cap, gains a
+  **Tracking the cap across a resume** note: the 5-iteration cap is scoped to
+  the issue's branch, not a single process's lifetime. On resume, recover
+  iterations already spent by counting commits already made on the branch
+  since it diverged from `main` (e.g. `git log main..HEAD --oneline | wc
+  -l`), and continue the loop from that count rather than resetting to zero —
+  so a repeatedly-interrupted issue can't dodge the cap and loop indefinitely
+  across resumes.
+- Scope limited to the two `SKILL.md` files per the issue's `Touches:` line;
+  `CLAUDE.md` is untouched here — sibling issues #22–#24 in epic #19 cover
+  the kill switch, retry-with-backoff, and scheduled-trigger docs.
+- **Shipped:** PR #27 merged to `main` at `b705603`, closing issue #21.
+
+## 2026-08-16 — kill switch for /sprint (issue #22, epic #19)
+
+- `.claude/skills/sprint/SKILL.md` gains a new step 3, "Kill switch —
+  `.claude/STOP` marker" (inserted between Circuit breaker and Detect
+  overlap, the rest of the procedure renumbers accordingly, 4 through 8). It
+  checks for a `.claude/STOP` file at the repo root at the same two
+  checkpoints as the circuit breaker: before selecting new work (step 1) and
+  before spawning each new `implement` sub-agent (step 5) — including before
+  the very first issue of the run. If present, `/sprint` halts cleanly:
+  no further selection, no further spawning, for the rest of the run.
+- Made explicit that the check happens **only between issues**, never by
+  interrupting an issue already in flight — implement/verify/ship in
+  progress always runs to completion, exactly like the circuit breaker.
+  Unlike the breaker (automatic, trips on 3 consecutive blocked issues or
+  the total-attempted cap), the STOP marker is a manual, human-operated kill
+  switch for an operator watching an unattended run.
+- Summarize (now step 8) gains a fifth outcome bucket, **Halted**, listing
+  any selected-but-untouched candidate left in the run because the kill
+  switch found `.claude/STOP` before it could be spawned — alongside
+  Shipped/Blocked/Still running/Circuit-broken.
+- `docs/WORKFLOW.md` gains a new "Halting an unattended `/sprint` run"
+  section (placed just before "Known gotchas") documenting the two ways to
+  stop a scheduled/unattended run: disabling its scheduling trigger (durable
+  pause, no run interrupted) or dropping `.claude/STOP` (immediate halt on
+  the next between-issues checkpoint of a run already underway).
+- Scope limited to `.claude/skills/sprint/SKILL.md` and `docs/WORKFLOW.md`
+  per the issue's `Touches:` line; `CLAUDE.md` and
+  `.claude/skills/implement/SKILL.md` are untouched here — sibling issues
+  #23–#24 in epic #19 cover retry-with-backoff and scheduled-trigger docs.
+- **Shipped:** PR #28 merged to `main` at `74be142`, closing issue #22.
+
+## 2026-08-16 — retry-with-backoff for transient failures in /sprint (issue #23, epic #19)
+
+- `.claude/skills/sprint/SKILL.md` gains a new "Transient failures vs.
+  blockers" section (placed after Conflict rules, before Notes) identifying
+  the three steps where `/sprint` itself makes `gh`/MCP calls directly rather
+  than delegating them to a spawned sub-agent: Select work (step 1, listing
+  candidate issues), Detect overlap (step 4, reading each candidate's
+  `Touches:`/AC), and Ship (step 7, checking CI status and merging).
+  Implement in parallel and Verify on landing are explicitly out of scope for
+  this section — they spawn `implement`/`verify` sub-agents that make their
+  own calls under their own skills' procedures.
+- The new section defines a transient failure (a `gh`/GitHub API rate limit,
+  a timeout, an Atlassian MCP call erroring out — infrastructure flakiness
+  that says nothing about the issue/PR itself) versus a real blocker (a
+  failing AC, CI red, ambiguous scope, a merge conflict — the call succeeded
+  but what it returned is bad news). On a transient failure, retry the same
+  call with exponential backoff: up to 4 attempts, waiting 2s, 4s, 8s, then
+  16s between attempts; if the 4th retry still fails, treat it as a blocker
+  and surface it in Summarize like any other.
+- Made explicit that real blockers are never retried — they surface
+  immediately on first encounter, unchanged from `/sprint`'s existing
+  behavior; retry-with-backoff exists only to absorb infrastructure
+  flakiness in `/sprint`'s own direct calls, never to paper over a genuine
+  blocking condition.
+- Each of the three direct-call steps (1, 4, 7) gets a short pointer back to
+  this section, so the transient-vs-blocker distinction is documented at
+  every step that calls out to `gh`/an MCP, not only in one central place.
+- Scope limited to `.claude/skills/sprint/SKILL.md` per the issue's
+  `Touches:` line — the sole file this issue touches; sibling issue #24 in
+  epic #19 covers the scheduled-trigger docs.
+- **Shipped:** PR #29 merged to `main` at `d00c37b`, closing issue #23.
+
+## 2026-08-16 — document autonomous scheduling setup for /sprint (issue #24, epic #19)
+
+- `docs/WORKFLOW.md` gains a new "Autonomous operation" section, placed after
+  the "Recommended tools / MCPs" table and just before the existing "Halting
+  an unattended `/sprint` run" section (so the doc now reads: how to turn
+  unattended running on, immediately followed by how to turn it off). It
+  explains wiring `/sprint [N]` to a recurring scheduled trigger (a cron-based
+  Routine, or an equivalent scheduling mechanism) so it fires against the open
+  backlog without a human invoking it each time.
+- The new section documents the safety envelope epic #19 added as the
+  preconditions for doing this safely, describing what each piece actually
+  does today rather than just naming it: the circuit breaker's two run-scoped
+  counters (step 2), the resume-check before spawning a fresh `implement`
+  sub-agent (step 5), the `.claude/STOP` kill switch (step 3), and the
+  transient-failure retry-with-backoff for `/sprint`'s own direct `gh`/MCP
+  calls ("Transient failures vs. blockers").
+- It also states explicitly, citing `CLAUDE.md` → Gotchas ("PR self-approval
+  is blocked"), that a scheduled `/sprint` run is not fully autonomous end to
+  end: `/verify` running under the same identity that authored the PR can't
+  get GitHub to accept `--approve`, so a human still has to approve each PR
+  by hand before `/ship`'s guard lets it merge — a known checkpoint to plan
+  trigger cadence and approval turnaround around.
+- `README.md`'s "What you get" list gains a one-line pointer to the new
+  section.
+- Scope limited to `docs/WORKFLOW.md`, `README.md`, and this file per the
+  issue's `Touches:` line; `.claude/skills/*` and `CLAUDE.md` are untouched
+  here — this issue only documents mechanics #20–#23 already built.
+- **This closes out epic #19** — all five spec issues (#20–#24) are now
+  implemented, pending final merge of this PR.
+
 ## 2026-09-24 — Model and effort policy refresh (ADR-0003)
 
 - `CLAUDE.md`: replaced the "Effort policy", "Model routing", and "Cost note"

@@ -27,6 +27,11 @@ stack example (`node-ts`). The pattern was proven on
   Plus a sixth, one-time bootstrap skill: **`/onboard`** — interviews you to
   finish wiring `CLAUDE.md` after adopting into an existing project (see
   Option C below), including scoping to one package in a monorepo.
+- **Autonomous operation.** `/sprint` can be wired to a recurring scheduled
+  trigger for unattended runs against the open backlog — see
+  [docs/WORKFLOW.md → Autonomous operation](docs/WORKFLOW.md#autonomous-operation)
+  for the safety envelope (circuit breaker, resumability, kill switch,
+  transient-failure backoff) and the known human-approval checkpoint at `/ship`.
 - **`CLAUDE.md`** — the agentic working agreement (the single `check` gate, AC
   = spec, one worktree per issue, no force-push, 5-iteration cap).
 - **Choice of issue tracker.** All five skills read/write GitHub Issues by
