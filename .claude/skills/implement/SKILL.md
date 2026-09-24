@@ -50,6 +50,10 @@ Check `issue_tracker` in `CLAUDE.md` before step 1.
    output (in `jira` mode, comment on the Jira issue via the Atlassian MCP).
    This cap and the ambiguous-AC rule apply identically in both modes.
 
+   Run the gate rather than reasoning about whether the change is correct, and
+   batch file reads into one turn: both cut turns, which is what a long loop
+   actually costs. See `CLAUDE.md` → Turn and context discipline.
+
 5. **Commit & open the PR.** The PR always lives on GitHub, in both modes.
    - Commit message references the issue: the GitHub issue number in `github`
      mode (e.g. `feat: capture offline (#<#>)`), or the Jira key in `jira`
@@ -84,6 +88,16 @@ These are tracker-agnostic and unchanged between `github` and `jira` modes.
 - If the AC is ambiguous, comment on the issue and stop (in `jira` mode, that
   means the Jira issue, via the Atlassian MCP). Do not guess.
 - Stay inside the worktree; never commit to `main` directly.
+
+## Model and effort
+
+Run this skill at the session default (Sonnet 5 at `medium` per `CLAUDE.md`)
+for tickets whose AC is mechanical. Use Opus 5.5 at `medium` when the ticket's
+difficulty is design judgment. If a ticket exhausts the 5-iteration cap, re-run
+it once at `high` before surfacing a blocker, and hold effort constant for the
+rest of that session so the prompt cache survives. Send "where does X live"
+questions to a Haiku subagent instead of reading the repository in the main
+session.
 
 ## Notes
 

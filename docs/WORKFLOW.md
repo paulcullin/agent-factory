@@ -48,6 +48,10 @@ bootstrap step for adopting into an existing project (see
    + ADRs (`docs/adr/`) are part of every change.
 5. **Deterministic before AI.** `check` gates correctness; AI verify gates
    *coverage* of the AC. AI judgment never replaces the deterministic gate.
+6. **The cheapest model that can do the job.** Reading is subagent work; only
+   deciding and editing run on the session model. Effort escalates after a
+   failure, not in anticipation of one. `CLAUDE.md` → Model and effort policy
+   carries the routing table, and ADR-0003 records why.
 
 ## Day-to-day usage
 

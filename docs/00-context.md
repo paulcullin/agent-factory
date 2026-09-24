@@ -132,3 +132,24 @@ narrative memory; every non-trivial change adds a line here._
 - **This closes out epic #6** — all five skills (`spec`, `implement`, `verify`,
   `ship`, `sprint`) now carry a `jira`-mode fork alongside their `github`
   behavior, gated by the shared `issue_tracker` config from issue #7.
+
+## 2026-09-24 — Model and effort policy refresh (ADR-0003)
+
+- `CLAUDE.md`: replaced the "Effort policy", "Model routing", and "Cost note"
+  sections with "Model and effort policy" and "Turn and context discipline".
+  Session default is now Sonnet 5 at `medium`; Opus 5.5 at `medium` for
+  `/spec`, `/verify`, and design-heavy tickets; `high` only after a ticket has
+  failed twice or for an ADR-worthy call; no `xhigh`/`max` without a human.
+  Reading work routes to Haiku subagents. Effort is held constant within a
+  session because changing it invalidates the prompt cache.
+- Stale facts removed: Opus 4.8 as the escalation target, and the note about
+  intro pricing ending 2026-08-31.
+- `.claude/settings.json`: dropped the undocumented top-level `effort` key in
+  favor of `effortLevel`, per-model `modelSettings`, `maxEffortLevel: "high"`,
+  and `env.CLAUDE_CODE_SUBAGENT_MODEL=haiku`.
+- `/implement` gained a "Model and effort" section and an escalate-once-on-
+  failure rule; `/verify` gained the verifier-independence rule (including the
+  honest fallback when Opus implemented); `/sprint` gained model routing across
+  the fan-out; `docs/WORKFLOW.md` gained a sixth design principle.
+- Skills deliberately do not name models. Only `CLAUDE.md` and
+  `.claude/settings.json` do, so the next model release is a two-file change.
