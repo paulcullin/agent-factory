@@ -1,6 +1,21 @@
 {
   "model": "claude-sonnet-5",
-  "effort": "medium",
+  "effortLevel": "medium",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effort": "medium"
+    },
+    "claude-sonnet-5": {
+      "effort": "medium"
+    },
+    "claude-haiku-4-5": {
+      "effort": "low"
+    }
+  },
+  "maxEffortLevel": "high",
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
+  },
   "permissions": {
     "allow": [
       "Bash(git status:*)",

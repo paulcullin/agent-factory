@@ -7,20 +7,55 @@ under in this repository. It is loaded automatically. Read it before acting.
 > stamped from this template, this file ships with it and the project-specific
 > sections below (Architecture map, Gotchas, Commands runner) get filled in.
 
-## Effort policy
-- Medium by default.
-- High only for: hard debugging, multi-file refactors,
-  architecture calls.
-- Low for: formatting, renames, boilerplate.
+## Model and effort policy
 
-## Model routing
-- Default to Sonnet 5 for everything.
-- Escalate to Opus 4.8 only after two failed Sonnet attempts,
-  or for the deepest reasoning tasks.
+Claude Code reads effort from `/effort`, `--effort`, the `effortLevel` setting,
+and per-model `modelSettings`. Opus 5.5 defaults to `medium` effort; Sonnet 5
+and Haiku 4.5 default to `high`. Set effort explicitly rather than relying on a
+model's default.
 
-## Cost note
-- Intro pricing ($2/$10) ends Aug 31, 2026. Run large batch
-  jobs before then where possible.
+- **Session default: Sonnet 5 at `medium`.** Raise deliberately, never by habit.
+- **Opus 5.5 at `medium`:** `/spec` decomposition, `/verify`, and any ticket
+  whose difficulty is design judgment rather than typing.
+- **Opus 5.5 at `high`:** only for a ticket that has already failed twice, or an
+  architecture call being recorded as an ADR. High effort adds roughly 20K
+  thinking tokens across a task, which pays for itself only when it prevents a
+  retry loop.
+- **Escalate on failure, not in advance.** Run the backlog at `medium`, then
+  re-run only what failed at `high`. On public coding benchmarks that pattern
+  reaches an equal or better pass rate for about half the cost of running
+  everything high.
+- **`low`:** formatting, renames, mechanical merges, changelog entries.
+- **Subagents:** Haiku for search and log reading, Sonnet for multi-file
+  reading. Only the agent that edits code runs on the session model.
+- **No `xhigh`, no `max`** unless a human chooses it in the moment;
+  `maxEffortLevel` in `.claude/settings.json` is the guard.
+- **Hold effort constant inside a session.** Changing effort invalidates the
+  prompt cache, and cache reads are the largest single cost lever in an agent
+  loop.
+
+> **Adversarial review, stated honestly.** The pipeline's rule is that the
+> verifying agent runs on a different model from the implementing agent. That
+> holds when Sonnet implements and Opus verifies. When Opus implements, there is
+> no stronger model in the palette, so verification falls back to Sonnet at
+> `high` (independent family, less capable) or to the deterministic gate plus
+> human review. Record which one was used; do not claim independence you did not
+> have.
+
+## Turn and context discipline
+
+Every turn resends the whole conversation, so turn count and cache hits dominate
+what a task costs.
+
+- Batch file reads and tool calls into one turn rather than one per file.
+- Run `check` instead of reasoning about whether the code is right. A failing
+  gate is cheaper than a model's opinion.
+- `/compact` at milestone boundaries, not mid-ticket.
+- One ticket per session and per worktree.
+- Keep the top of this file stable: no timestamps, no per-session status lines.
+  A volatile prefix invalidates the prompt cache for every later turn.
+- Record `/usage` before and after long or unattended sessions in
+  `docs/00-context.md`.
 
 ## Commands
 
@@ -63,7 +98,9 @@ under in this repository. It is loaded automatically. Read it before acting.
 - The acceptance criteria in a worked issue **ARE** the spec. Implement exactly
   those — no more, no less. Each criterion maps to a code change or a test.
 - Loop: implement → `check` → fix → `check`. **Max 5 iterations**, then surface
-  a blocker (comment on the issue) instead of thrashing.
+  a blocker (comment on the issue) instead of thrashing. One re-run of a failed
+  ticket at higher effort is allowed before the blocker; a third failure is a
+  specification problem, not a model problem, so fix the AC instead.
 - **One worktree + branch per issue.** Never work across issues in one branch.
 - **Never force-push.** Never merge without `check` green **AND** a verify
   approval.

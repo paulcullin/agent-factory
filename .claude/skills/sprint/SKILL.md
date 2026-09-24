@@ -208,5 +208,12 @@ condition.
 
 - This skill composes the other four skills — it does not re-implement their
   logic. Keep its job to selection, scheduling, and serialization.
+- **Model routing across the fan-out** (see `CLAUDE.md` → Model and effort
+  policy): selection and scheduling run on the session model; `implement`
+  sub-agents run at the session default unless the issue is design-heavy;
+  `verify` sub-agents run on a different model from the one that implemented;
+  issue-reading, log-reading, and repository search run on Haiku. An
+  orchestrator only pays for itself when the work is parallel and independent —
+  for one dependent chain of issues, drive them serially instead.
 - Sub-agents run with their own context; pass them just the issue number and a
   pointer to `CLAUDE.md` + the relevant skill.

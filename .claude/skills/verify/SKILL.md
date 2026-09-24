@@ -84,9 +84,26 @@ CI: <green/red> (gh pr checks)
 <approve | request-changes> — <one-line reason>
 ```
 
+## Model and effort
+
+Verification is the adversarial half of the pipeline, so it must not run on the
+same model that wrote the code:
+
+- Implementer on Sonnet 5 ⇒ **verify on Opus 5.5 at `medium`.** This is the
+  normal case and it preserves genuine independence.
+- Implementer on Opus 5.5 ⇒ no stronger model is available. Verify on **Sonnet
+  5 at `high`** (independent family, less capable), or skip AI verification and
+  rely on the deterministic gate plus human review. Say which in the review
+  body; never imply independence that did not exist.
+- Never verify on the same model *and* the same effort that implemented.
+
+Reading the diff and CI logs is subagent work (Haiku); grading the AC is not.
+
 ## Rules
 
 - Every PASS cites evidence (file:line or a named test). No evidence ⇒ GAP.
+- State the verifying model in the review body, and flag it when independence
+  was degraded.
 - Never approve with CI red.
 - Never approve if any AC is a GAP — request changes and say exactly what's
   missing and where.
